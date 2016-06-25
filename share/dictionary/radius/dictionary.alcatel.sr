@@ -23,10 +23,11 @@ VALUE	Timetra-Access			both			3
 
 ATTRIBUTE	Timetra-Home-Directory			2	string
 
+ATTRIBUTE	Timetra-Restrict-To-Home		3	integer
+
 VALUE	Timetra-Restrict-To-Home	true			1
 VALUE	Timetra-Restrict-To-Home	false			2
 
-ATTRIBUTE	Timetra-Restrict-To-Home		3	integer
 ATTRIBUTE	Timetra-Profile				4	string
 ATTRIBUTE	Timetra-Default-Action			5	integer
 

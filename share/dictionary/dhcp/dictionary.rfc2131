@@ -2,7 +2,7 @@
 # Copyright (C) 2015 The FreeRADIUS Server project and contributors
 ##############################################################################
 #
-#	DHCP to RADIUS gateway dictionary.
+#	DHCP dictionary.
 #
 #	http://www.iana.org/assignments/bootp-dhcp-parameters
 #
@@ -15,11 +15,6 @@
 ##############################################################################
 
 #
-
-#	This is really Apollo's number, but since they're out of business,
-#	I don't think they'll be needing this.
-#
-#	HP owns the Apollo assets, but let's not worry about that.
 #
 #	The vendor codes are 2 octets, because we need 256 numbers
 #	for the base DHCP options, PLUS a few for the DHCP headers,
@@ -28,10 +23,6 @@
 #	On top of that, a number of options are really TLV's.
 #	We need to be able to understand them, too.
 #
-VENDOR		DHCP				54
-
-BEGIN-VENDOR	DHCP
-
 FLAGS		internal
 ATTRIBUTE	DHCP-Opcode				256	byte
 
@@ -569,5 +560,3 @@ VALUE	DHCP-Parameter-Request-List	DHCP-IEEE-802.1P-VLAN-ID 132
 VALUE	DHCP-Parameter-Request-List	DHCP-IEEE-802.1Q-L2-Priority 133
 VALUE	DHCP-Parameter-Request-List	DHCP-Diffserv-Code-Point 134
 VALUE	DHCP-Parameter-Request-List	DHCP-HTTP-Proxy		135
-
-END-VENDOR	DHCP

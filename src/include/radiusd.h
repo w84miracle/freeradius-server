@@ -25,6 +25,8 @@
  */
 RCSIDH(radiusd_h, "$Id$")
 
+#include <freeradius-devel/protocol/radius/dictionary.h>
+
 #include <freeradius-devel/libradius.h>
 #include <freeradius-devel/conf.h>
 #include <freeradius-devel/conffile.h>

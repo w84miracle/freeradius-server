@@ -196,10 +196,6 @@ static REQUEST *request_from_file(FILE *fp, RADCLIENT *client)
 	request->packet->dst_port = 1812;
 
 	/*
-	 *	Copied from radclient
-	 */
-#if 1
-	/*
 	 *	Fix up Digest-Attributes issues
 	 */
 	for (vp = fr_pair_cursor_init(&cursor, &request->packet->vps);
@@ -347,7 +343,6 @@ static REQUEST *request_from_file(FILE *fp, RADCLIENT *client)
 		break;
 		}
 	} /* loop over the VP's we read in */
-#endif
 
 	if (rad_debug_lvl) {
 		for (vp = fr_pair_cursor_init(&cursor, &request->packet->vps);

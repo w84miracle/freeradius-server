@@ -176,8 +176,8 @@ static int CC_HINT(nonnull) rad_check_password(REQUEST *request)
 
 	/*
 	 *	Look for matching check items. We skip the whole lot
-	 *	if the authentication type is PW_AUTH_TYPE_ACCEPT or
-	 *	PW_AUTH_TYPE_REJECT.
+	 *	if the authentication type is PW_AUTH_TYPE_VALUE_ACCEPT or
+	 *	PW_AUTH_TYPE_VALUE_REJECT.
 	 */
 	fr_pair_cursor_init(&cursor, &request->control);
 	while ((auth_type_pair = fr_pair_cursor_next_by_num(&cursor, 0, PW_AUTH_TYPE, TAG_ANY))) {
@@ -185,7 +185,7 @@ static int CC_HINT(nonnull) rad_check_password(REQUEST *request)
 		auth_type_count++;
 
 		RDEBUG2("Using 'Auth-Type = %s' for authenticate {...}", fr_dict_enum_name_by_da(NULL, auth_type_pair->da, auth_type));
-		if (auth_type == PW_AUTH_TYPE_REJECT) {
+		if (auth_type == PW_AUTH_TYPE_VALUE_REJECT) {
 			RDEBUG2("Auth-Type = Reject, rejecting user");
 
 			return -2;
@@ -206,7 +206,7 @@ static int CC_HINT(nonnull) rad_check_password(REQUEST *request)
 	 *	rejected in the above loop. So that means it is accepted and we
 	 *	do no further authentication.
 	 */
-	if ((auth_type == PW_AUTH_TYPE_ACCEPT)
+	if ((auth_type == PW_AUTH_TYPE_VALUE_ACCEPT)
 #ifdef WITH_PROXY
 	    || (request->proxy)
 #endif
@@ -380,7 +380,7 @@ rlm_rcode_t rad_authenticate(REQUEST *request)
 			tmp = radius_pair_create(request,
 						&request->control,
 						PW_AUTH_TYPE, 0);
-			if (tmp) tmp->vp_integer = PW_AUTH_TYPE_ACCEPT;
+			if (tmp) tmp->vp_integer = PW_AUTH_TYPE_VALUE_ACCEPT;
 			rcode = RLM_MODULE_OK;
 			goto authenticate;
 

@@ -34,7 +34,7 @@ ATTRIBUTE	Exec-Program-Wait			503	string
 #
 #
 #	Non-Protocol Attributes
-#	These attributes are usedly by the server
+#	These attributes are used internally by the server
 #
 ATTRIBUTE	Auth-Type				1000	integer
 ATTRIBUTE	Menu					1001	string

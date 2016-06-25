@@ -660,7 +660,7 @@ static rlm_rcode_t mod_authorize(void *instance, UNUSED void *thread, REQUEST *r
 	 *	and to get excited if it doesn't appear.
 	 */
 	vp = fr_pair_find_by_num(request->control, 0, PW_AUTH_TYPE, TAG_ANY);
-	if ((!vp) || (vp->vp_integer != PW_AUTH_TYPE_REJECT)) {
+	if ((!vp) || (vp->vp_integer != PW_AUTH_TYPE_VALUE_REJECT)) {
 		vp = pair_make_config("Auth-Type", inst->name, T_OP_EQ);
 		if (!vp) {
 			RDEBUG2("Failed to create Auth-Type %s: %s\n",
@@ -873,7 +873,7 @@ static rlm_rcode_t mod_post_auth(void *instance, UNUSED void *thread, REQUEST *r
 	 */
 	vp = fr_pair_find_by_num(request->control, 0, PW_POST_AUTH_TYPE, TAG_ANY);
 
-	if (!vp || (vp->vp_integer != PW_POST_AUTH_TYPE_REJECT)) return RLM_MODULE_NOOP;
+	if (!vp || (vp->vp_integer != PW_POST_AUTH_TYPE_VALUE_REJECT)) return RLM_MODULE_NOOP;
 
 	if (!fr_pair_find_by_num(request->packet->vps, 0, PW_EAP_MESSAGE, TAG_ANY)) {
 		RDEBUG3("Request didn't contain an EAP-Message, not inserting EAP-Failure");

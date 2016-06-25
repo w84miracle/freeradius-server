@@ -29,7 +29,7 @@ RCSID("$Id$")
 
 #include <freeradius-devel/radiusd.h>
 #include <freeradius-devel/rad_assert.h>
-#include <freeradius-devel/freeradius.snmp.h>
+#include <freeradius-devel/protocol/snmp/freeradius.h>
 
 #define PW_FREERADIUS_SNMP_TYPE_OBJECT 0
 
