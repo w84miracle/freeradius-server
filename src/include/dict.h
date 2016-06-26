@@ -221,6 +221,12 @@ ssize_t			fr_dict_attr_by_oid(fr_dict_t *dict, fr_dict_attr_t const **parent,
 /*
  *	Lookup
  */
+fr_dict_t		*fr_dict_by_protocol_name(char const *name);
+
+fr_dict_t		*fr_dict_by_protocol_num(unsigned int num);
+
+fr_dict_t		*fr_dict_by_attr_name(fr_dict_attr_t const **found, char const *name);
+
 int			fr_dict_vendor_by_name(fr_dict_t *dict, char const *name);
 
 fr_dict_vendor_t const	*fr_dict_vendor_by_num(fr_dict_t *dict, int vendor);
