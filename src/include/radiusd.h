@@ -379,6 +379,7 @@ extern bool		log_stripped_names;
 extern char const	*radiusd_version;
 extern char const	*radiusd_version_short;
 void			radius_signal_self(int flag);
+extern fr_dict_t	*fr_dict_radius;
 
 typedef enum {
 	RADIUS_SIGNAL_SELF_NONE		= (0),
@@ -539,8 +540,13 @@ void trigger_exec_free(void);
 VALUE_PAIR *trigger_args_afrom_server(TALLOC_CTX *ctx, char const *server, uint16_t port);
 
 /* valuepair.c */
-int paircompare_register_byname(char const *name, fr_dict_attr_t const *from,
-				bool first_only, RAD_COMPARE_FUNC func, void *instance);
+int		paircompare_register_by_name(fr_dict_t *dict,
+					     char const *name,
+					     fr_dict_attr_t const *from,
+					     bool first_only,
+					     RAD_COMPARE_FUNC func,
+					     void *instance);
+
 int paircompare_register(fr_dict_attr_t const *attribute, fr_dict_attr_t const *from,
 			 bool first_only, RAD_COMPARE_FUNC func, void *instance);
 void		paircompare_unregister(fr_dict_attr_t const *attr, RAD_COMPARE_FUNC func);

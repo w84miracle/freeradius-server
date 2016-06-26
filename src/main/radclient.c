@@ -72,6 +72,10 @@ static int sleep_time = -1;
 static rc_request_t *request_head = NULL;
 static rc_request_t *rc_request_tail = NULL;
 
+static fr_dict_t *dict = NULL;
+static fr_dict_t *dict_radius = NULL;
+static fr_dict_attr_t const *vendor_microsoft;
+
 static char const *radclient_version = RADIUSD_VERSION_STRING_BUILD("radclient");
 
 static void NEVER_RETURNS usage(void)
@@ -1154,7 +1158,8 @@ int main(int argc, char **argv)
 	int		parallel = 1;
 	rc_request_t	*this;
 	int		force_af = AF_UNSPEC;
-	fr_dict_t	*dict = NULL;
+
+	TALLOC_CTX	*autofree = talloc_init("main");
 
 	/*
 	 *	It's easier having two sets of flags to set the
@@ -1353,12 +1358,23 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	if (fr_dict_from_file(NULL, &dict, dict_dir, FR_DICTIONARY_FILE, "radius") < 0) {
+	if (fr_dict_internal_afrom_file(autofree, &dict, dict_dir, FR_DICTIONARY_INTERNAL_DIR) < 0) {
+		fr_perror("radclient");
+		return EXIT_FAILURE;
+	}
+
+	if (fr_dict_protocol_afrom_file(autofree, &dict_radius, dict_dir, "radius") < 0) {
 		fr_perror("radclient");
 		return 1;
 	}
 
-	if (fr_dict_read(dict, radius_dir, FR_DICTIONARY_FILE) == -1) {
+	if (fr_dict_from_file(dict_radius, radius_dir, FR_DICTIONARY_FILE) == -1) {
+		fr_perror("radclient");
+		return 1;
+	}
+
+	vendor_microsoft = fr_dict_vendor_attr_by_num(dict_radius, PW_VENDOR_SPECIFIC, VENDORPEC_MICROSOFT);
+	if (!vendor_microsoft) {
 		fr_perror("radclient");
 		return 1;
 	}
@@ -1616,7 +1632,7 @@ int main(int argc, char **argv)
 	rbtree_free(filename_tree);
 	fr_packet_list_free(pl);
 	while (request_head) TALLOC_FREE(request_head);
-	talloc_free(dict);
+	talloc_free(autofree);
 	talloc_free(secret);
 
 	if (do_summary) {

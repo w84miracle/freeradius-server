@@ -32,7 +32,6 @@ RCSID("$Id$")
 #include "eap_types.h"
 #include "sim_proto.h"
 #include <freeradius-devel/sha1.h>
-#include <freeradius-devel/eap.sim.h>
 #include <openssl/evp.h>
 
 /*

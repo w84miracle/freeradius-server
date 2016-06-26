@@ -241,6 +241,9 @@ typedef struct eap_fast_tunnel_t {
 	char const	*virtual_server;
 } eap_fast_tunnel_t;
 
+extern fr_dict_t		*dict_radius;
+extern fr_dict_attr_t const	*vendor_microsoft;
+
 /*
  *	Process the FAST portion of an EAP-FAST request.
  */

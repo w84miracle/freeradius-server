@@ -111,6 +111,11 @@ void	radlog_fatal(char const *fmt, ...) CC_HINT(format (printf, 1, 2)) CC_HINT(n
 #define ERROR(fmt, ...)		_RADLOG(L_ERR, fmt, ## __VA_ARGS__)
 /** @} */
 
+/** Loader error
+ *
+ */
+#define LERROR(fmt, ...)	fr_log(&default_log, L_ERR, fmt, ## __VA_ARGS__)
+
 /** @name Log global debug messages (DEBUG*)
  *
  * Write debugging messages to the global log.

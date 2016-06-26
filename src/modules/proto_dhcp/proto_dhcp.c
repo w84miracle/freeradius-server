@@ -56,6 +56,8 @@
 #  include <sys/ioctl.h>
 #endif
 
+fr_dict_t *dict_dhcp;
+
 /*
  *	Same contents as listen_socket_t.
  */
@@ -315,7 +317,7 @@ static rlm_rcode_t dhcp_process(REQUEST *request)
 
 	vp = fr_pair_find_by_num(request->packet->vps, DHCP_MAGIC_VENDOR, 53, TAG_ANY); /* DHCP-Message-Type */
 	if (vp) {
-		fr_dict_enum_t *dv = fr_dict_enum_by_da(NULL, vp->da, vp->vp_integer);
+		fr_dict_enum_t *dv = fr_dict_enum_by_da(vp->da, vp->vp_integer);
 
 		if (dv) {
 			CONF_SECTION *server, *unlang;
@@ -1027,7 +1029,7 @@ static int dhcp_listen_compile(CONF_SECTION *server_cs, CONF_SECTION *listen_cs)
 			cf_log_module(cs, "Loading dhcp {...}");
 		}
 
-		dv = fr_dict_enum_by_name(NULL, da, name2);
+		dv = fr_dict_enum_by_name(da, name2);
 		if (!dv) {
 			cf_log_err_cs(cs, "Server contains 'dhcp %s {...}, but there is no such value for DHCP-Message-Type",
 				      name2);
@@ -1047,15 +1049,20 @@ static int dhcp_load(void)
 {
 	int ret;
 
-	ret = fr_dict_read(main_config.dict, main_config.dictionary_dir, "dictionary.dhcp");
-	if (dhcp_init() < 0) {
+	DEBUG2("including dictionary file %s/dhcp/%s", main_config.dictionary_dir, FR_DICTIONARY_FILE);
+	ret = fr_dict_protocol_afrom_file(NULL, &dict_dhcp, main_config.dictionary_dir, "dhcp");
+	if (ret < 0) {
 		ERROR("%s", fr_strerror());
-		return -1;
+		return ret;
 	}
 
-	return ret;
+	return 0;
 }
 
+static void dhcp_unload(void)
+{
+	talloc_decrease_ref_count(dict_dhcp);
+}
 
 extern rad_protocol_t proto_dhcp;
 rad_protocol_t proto_dhcp = {
@@ -1066,6 +1073,7 @@ rad_protocol_t proto_dhcp = {
 	.tls		= false,
 
 	.load		= dhcp_load,
+	.unload		= dhcp_unload,
 	.compile	= dhcp_listen_compile,
 	.parse		= dhcp_socket_parse,
 	.open		= common_socket_open,

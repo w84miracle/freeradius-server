@@ -29,6 +29,8 @@
 
 #include "tacacs.h"
 
+fr_dict_t *dict_tacacs;
+
 /*
  *	Debug the packet if requested - cribbed from common_packet_debug
  */
@@ -246,7 +248,8 @@ stop_processing:
 				continue;
 			}
 
-			RWDEBUG("Ignoring extra Auth-Type = %s", fr_dict_enum_name_by_da(NULL, auth_type->da, vp->vp_integer));
+			RWDEBUG("Ignoring extra Auth-Type = %s",
+				fr_dict_enum_name_by_da(auth_type->da, vp->vp_integer));
 		}
 
 		/*
@@ -261,13 +264,13 @@ stop_processing:
 		/*
 		 *	Handle hard-coded Accept and Reject.
 		 */
-		if (auth_type->vp_integer == PW_AUTH_TYPE_ACCEPT) {
+		if (auth_type->vp_integer == PW_AUTH_TYPE_VALUE_ACCEPT) {
 			RDEBUG2("Auth-Type = Accept, allowing user");
 			tacacs_status(request, RLM_MODULE_OK);
 			goto setup_send;
 		}
 
-		if (auth_type->vp_integer == PW_AUTH_TYPE_REJECT) {
+		if (auth_type->vp_integer == PW_AUTH_TYPE_VALUE_REJECT) {
 			RDEBUG2("Auth-Type = Reject, rejecting user");
 			tacacs_status(request, RLM_MODULE_REJECT);
 			goto setup_send;
@@ -277,7 +280,7 @@ stop_processing:
 		 *	Find the appropriate Auth-Type by name.
 		 */
 		vp = auth_type;
-		dv = fr_dict_enum_by_da(NULL, vp->da, vp->vp_integer);
+		dv = fr_dict_enum_by_da(vp->da, vp->vp_integer);
 		if (!dv) {
 			REDEBUG2("Unknown Auth-Type %d found: rejecting the user.", vp->vp_integer);
 			tacacs_status(request, RLM_MODULE_FAIL);
@@ -582,21 +585,31 @@ static int tacacs_listen_compile(CONF_SECTION *server_cs, UNUSED CONF_SECTION *l
 	return 0;
 }
 
-static int tacacs_load(void)
+static int mod_load(void)
 {
-	dict_tacacs_root = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), PW_TACACS_ROOT);
-	if (!dict_tacacs_root) {
-		ERROR("Missing TACACS-Root attribute");
-		return -1;
+	int ret;
+
+	DEBUG2("including dictionary file %s/tacacs/%s", main_config.dictionary_dir, FR_DICTIONARY_FILE);
+	ret = fr_dict_protocol_afrom_file(NULL, &dict_tacacs, main_config.dictionary_dir, "tacacs");
+	if (ret < 0) {
+		ERROR("%s", fr_strerror());
+		return ret;
 	}
+
 	return 0;
+}
+
+static void mod_unload(void)
+{
+	talloc_decrease_ref_count(dict_tacacs);
 }
 
 extern rad_protocol_t proto_tacacs;
 rad_protocol_t proto_tacacs = {
 	.name		= "tacacs",
 	.magic		= RLM_MODULE_INIT,
-	.load		= tacacs_load,
+	.load		= mod_load,
+	.unload		= mod_unload,
 	.inst_size	= sizeof(listen_socket_t),
 	.transports	= TRANSPORT_TCP,
 	.tls		= false,

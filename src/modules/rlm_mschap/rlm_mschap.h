@@ -13,6 +13,9 @@ RCSIDH(rlm_mschap_h, "$Id$")
 #include <freeradius-devel/connection.h>
 #endif
 
+extern fr_dict_t *dict_radius;
+extern fr_dict_attr_t const *vendor_microsoft;
+
 /* Method of authentication we are going to use */
 typedef enum {
 	AUTH_INTERNAL		= 0,

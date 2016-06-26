@@ -640,7 +640,7 @@ int main(int argc, char *argv[])
 	}
 
 #ifdef WITH_STATS
-	radius_stats_init(0);
+	if (radius_stats_init(0) < 0) fr_exit(EXIT_FAILURE);
 #endif
 
 	/*
@@ -694,7 +694,10 @@ int main(int argc, char *argv[])
 	 */
 	while ((status = radius_event_process()) == 0x80) {
 #ifdef WITH_STATS
-		radius_stats_init(1);
+		if (radius_stats_init(1) < 0) {
+			status = -1;
+			break;
+		}
 #endif
 		main_config_hup();
 	}

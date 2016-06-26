@@ -40,6 +40,7 @@ RCSID("$Id$")
 #endif
 
 fr_dict_attr_t const *dict_sim_root;
+fr_dict_t *dict_sim;
 
 /*
  *	build a reply to be sent.
@@ -568,7 +569,7 @@ static int mod_instantiate(UNUSED rlm_eap_config_t const *config, UNUSED void *i
 			return -1;
 		}
 
-		dv = fr_dict_enum_by_name(NULL, da, name2);
+		dv = fr_dict_enum_by_name(da, name2);
 		if (!dv) {
 			cf_log_err_cs(subcs, "Unknown EAP-SIM-Subtype %s", name2);
 			return -1;
@@ -592,8 +593,20 @@ static int mod_load(void)
 		ERROR("Missing EAP-SIM-Root attribute");
 		return -1;
 	}
+
+	if (fr_dict_protocol_afrom_file(NULL, &dict_sim, main_config.dictionary_dir, "sim") < 0) {
+		LERROR("rlm_eap_sim - %s", fr_strerror());
+		return -1;
+	}
+
 	if (fr_sim_global_init() < 0) return -1;
+
 	return 0;
+}
+
+static void mod_unload(void)
+{
+	talloc_decrease_ref_count(dict_sim);
 }
 
 /*
@@ -605,6 +618,7 @@ rlm_eap_submodule_t rlm_eap_sim = {
 	.name		= "eap_sim",
 	.magic		= RLM_MODULE_INIT,
 	.load		= mod_load,
+	.unload		= mod_unload,
 	.instantiate	= mod_instantiate,	/* Create new submodule instance */
 	.session_init	= mod_session_init,	/* Initialise a new EAP session */
 	.process	= mod_process,		/* Process next round of EAP method */

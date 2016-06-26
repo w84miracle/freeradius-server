@@ -25,13 +25,41 @@ ATTRIBUTE	Extended-Vendor-Specific-2		242.26	evs
 
 VENDOR FreeRADIUS 1
 BEGIN-Vendor FreeRADIUS format=Extended-Vendor-Specific-1
-
 ATTRIBUTE	Unit-EVS-Integer 1 integer
 ATTRIBUTE	Unit-EVS-Octets	 2 octets
 END-Vendor FreeRADIUS
 
 BEGIN-Vendor FreeRADIUS format=Extended-Vendor-Specific-2
-
 ATTRIBUTE	Unit-EVS-5-Integer	1 integer
 ATTRIBUTE	Unit-EVS-5-Octets	2 octets
 END-Vendor FreeRADIUS
+
+#
+#  Basic attributes of the various types
+#
+FLAG internal
+
+ATTRIBUTE	Unit-String				10001	string
+ATTRIBUTE	Unit-Integer				10002	integer
+ATTRIBUTE	Unit-IP-Address				10003	ipaddr
+ATTRIBUTE	Unit-Date				10004	date
+ATTRIBUTE	Unit-ABinary				10005	abinary
+
+ATTRIBUTE	Unit-Octets				10006	octets
+ATTRIBUTE	Unit-IF-ID				10007	ifid
+ATTRIBUTE	Unit-IPv6-Address			10008	ipv6addr
+ATTRIBUTE	Unit-IPv6-Prefix			10009	ipv6prefix
+ATTRIBUTE	Unit-Byte				10010	byte
+
+ATTRIBUTE	Unit-Short				10011	short
+ATTRIBUTE	Unit-Ether				10012	ether
+ATTRIBUTE	Unit-Signed				10013	signed
+
+# Ignore comb-ipaddr for now.
+
+ATTRIBUTE	Unit-TLV				10014	tlv
+
+# Ignore extended,long-extended, and evs
+
+ATTRIBUTE	Unit-Integer64				10015	integer64
+ATTRIBUTE	Unit-IPv4-Prefix			10016	ipv4prefix

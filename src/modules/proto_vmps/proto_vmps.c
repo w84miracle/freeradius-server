@@ -32,6 +32,8 @@ RCSID("$Id$")
 
 #include "vqp.h"
 
+fr_dict_t *dict_vqp;
+
 static void vmps_running(REQUEST *request, fr_state_action_t action)
 {
 	VALUE_PAIR *vp;
@@ -61,7 +63,7 @@ static void vmps_running(REQUEST *request, fr_state_action_t action)
 			goto done;
 		}
 
-		dv = fr_dict_enum_by_da(NULL, vp->da, vp->vp_integer);
+		dv = fr_dict_enum_by_da(vp->da, vp->vp_integer);
 		if (!dv) {
 			REDEBUG("Failed to find value for &request:VMPS-Packet-Type");
 			goto done;
@@ -101,7 +103,7 @@ static void vmps_running(REQUEST *request, fr_state_action_t action)
 			}
 		}
 
-		dv = fr_dict_enum_by_da(NULL, da, request->reply->code);
+		dv = fr_dict_enum_by_da(da, request->reply->code);
 		unlang = NULL;
 		if (dv) {
 			unlang = cf_section_sub_find_name2(request->server_cs, "send", dv->name);
@@ -297,9 +299,14 @@ static int vqp_listen_compile(CONF_SECTION *server_cs, UNUSED CONF_SECTION *list
 
 static int vmps_load(void)
 {
-	return fr_dict_read(main_config.dict, main_config.dictionary_dir, "dictionary.vqp");
+	DEBUG2("including dictionary file %s/vqp/%s", main_config.dictionary_dir, FR_DICTIONARY_FILE);
+	return fr_dict_protocol_afrom_file(NULL, &dict_vqp, main_config.dictionary_dir, "vqp");
 }
 
+static void vmps_unload(void)
+{
+	talloc_decrease_ref_count(dict_vqp);
+}
 
 extern rad_protocol_t proto_vmps;
 rad_protocol_t proto_vmps = {
@@ -310,6 +317,7 @@ rad_protocol_t proto_vmps = {
 	.tls		= false,
 
 	.load		= vmps_load,
+	.unload		= vmps_unload,
 	.size		= vqp_packet_size,
 	.compile	= vqp_listen_compile,
 	.parse		= common_socket_parse,

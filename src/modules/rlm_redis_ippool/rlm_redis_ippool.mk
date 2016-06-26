@@ -12,4 +12,4 @@ endif
 SOURCES	:= $(TARGETNAME).c
 
 SRC_CFLAGS	+= -I$(top_builddir)/src/modules/rlm_redis
-TGT_PREREQS	:= libfreeradius-redis.a
+TGT_PREREQS	:= libfreeradius-redis.a libfreeradius-server.a

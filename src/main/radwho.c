@@ -200,6 +200,9 @@ int main(int argc, char **argv)
 	uint32_t nas_ip_address = INADDR_NONE;
 	int zap = 0;
 	fr_dict_t *dict = NULL;
+	fr_dict_t *dict_radius = NULL;
+
+	TALLOC_CTX *autofree = talloc_init("main");
 
 	raddb_dir = RADIUS_DIR;
 
@@ -283,12 +286,17 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	if (fr_dict_from_file(NULL, &dict, dict_dir, FR_DICTIONARY_FILE, "radius") < 0) {
+	if (fr_dict_internal_afrom_file(autofree, &dict, dict_dir, FR_DICTIONARY_INTERNAL_DIR) < 0) {
+		fr_perror("radwho");
+		return EXIT_FAILURE;
+	}
+
+	if (fr_dict_protocol_afrom_file(autofree, &dict_radius, dict_dir, "radius") < 0) {
 		fr_perror("radwho");
 		return 1;
 	}
 
-	if (fr_dict_read(dict, raddb_dir, FR_DICTIONARY_FILE) == -1) {
+	if (fr_dict_from_file(dict, raddb_dir, FR_DICTIONARY_FILE) == -1) {
 		fr_perror("radwho");
 		return 1;
 	}
@@ -535,7 +543,8 @@ int main(int argc, char **argv)
 		}
 	}
 	fclose(fp);
-	talloc_free(dict);
+
+	talloc_free(autofree);
 
 	return 0;
 }

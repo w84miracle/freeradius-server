@@ -325,7 +325,7 @@ static int mod_bootstrap(CONF_SECTION *conf, void *instance)
 		group_attribute = "Winbind-Group";
 	}
 
-	if (paircompare_register_byname(group_attribute, user_name_da, false,
+	if (paircompare_register_by_name(group_attribute, user_name_da, false,
 					winbind_group_cmp, inst) < 0) {
 		ERROR("Error registering group comparison: %s", fr_strerror());
 		return -1;

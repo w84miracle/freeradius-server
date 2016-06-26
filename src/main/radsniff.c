@@ -51,6 +51,8 @@ static rbtree_t *request_tree = NULL;
 static rbtree_t *link_tree = NULL;
 static fr_event_list_t *events;
 static bool cleanup;
+static fr_dict_t *dict = NULL;
+static fr_dict_t *dict_radius = NULL;
 
 static int self_pipe[2] = {-1, -1};		//!< Signals from sig handlers
 
@@ -2147,7 +2149,6 @@ int main(int argc, char *argv[])
 	int opt;
 	char const *radius_dir = RADDBDIR;
 	char const *dict_dir = DICTDIR;
-	fr_dict_t *dict = NULL;
 
 	rs_stats_t *stats;
 
@@ -2491,13 +2492,18 @@ int main(int argc, char *argv[])
 		conf->pcap_filter = buffer;
 	}
 
-	if (fr_dict_from_file(conf, &dict, dict_dir, FR_DICTIONARY_FILE, "radius") < 0) {
+	if (fr_dict_internal_afrom_file(conf, &dict, dict_dir, FR_DICTIONARY_INTERNAL_DIR) < 0) {
+		fr_perror("radssniff");
+		return EXIT_FAILURE;
+	}
+
+	if (fr_dict_protocol_afrom_file(conf, &dict_radius, dict_dir, FR_DICTIONARY_FILE) < 0) {
 		fr_perror("radsniff");
 		ret = 64;
 		goto finish;
 	}
 
-	if (fr_dict_read(dict, radius_dir, FR_DICTIONARY_FILE) == -1) {
+	if (fr_dict_from_file(dict, radius_dir, FR_DICTIONARY_FILE) == -1) {
 		fr_perror("radsniff");
 		ret = 64;
 		goto finish;

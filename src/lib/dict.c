@@ -49,6 +49,7 @@ fr_hash_table_t	*protocol_by_num = NULL;	//!< Hash containing numbers of all the
  * protocol.
  */
 fr_dict_t	*fr_dict_internal = NULL;	//!< Internal server dictionary.
+fr_dict_t	*fr_dict_radius = NULL;		//!< FIXME - Shouldn't be global.
 
 /*
  *	For faster HUP's, we cache the stat information for
@@ -692,6 +693,8 @@ static inline int fr_dict_attr_child_add(fr_dict_attr_t *parent, fr_dict_attr_t 
 	child->parent = parent;
 	child->depth = parent->depth + 1;
 
+	VERIFY_DA(child);
+
 	/*
 	 *	We only allocate the pointer array *if* the parent has children.
 	 */
@@ -928,6 +931,8 @@ static fr_dict_attr_t *fr_dict_attr_add_by_name(fr_dict_t *dict, fr_dict_attr_t 
 	fr_dict_attr_t const	*v;
 
 	INTERNAL_IF_NULL(dict);
+
+	VERIFY_DA(parent);
 
 	if (!fr_cond_assert(parent)) return NULL;
 
@@ -1612,15 +1617,15 @@ int fr_dict_attr_add(fr_dict_t *dict, fr_dict_attr_t const *parent,
 /*
  *	Add a value for an attribute to the dictionary.
  */
-int fr_dict_enum_add(fr_dict_t *dict, char const *attr, char const *alias, int value)
+int fr_dict_enum_add(fr_dict_attr_t const *da, char const *alias, int value)
 {
 	size_t			length;
-	fr_dict_attr_t const	*da;
 	fr_dict_enum_t		*dval;
+	fr_dict_t		*dict = fr_dict_by_da(da);
 
 	static fr_dict_attr_t const *last_attr = NULL;
 
-	INTERNAL_IF_NULL(dict);
+	if (!dict || !da) return -1;
 
 	if (!*alias) {
 		fr_strerror_printf("%s: empty names are not permitted", __FUNCTION__);
@@ -1647,10 +1652,9 @@ int fr_dict_enum_add(fr_dict_t *dict, char const *attr, char const *alias, int v
 	 *	save a lot of lookups on dictionary initialization by
 	 *	caching the last attribute.
 	 */
-	if (last_attr && (strcasecmp(attr, last_attr->name) == 0)) {
+	if (last_attr && (strcasecmp(da->name, last_attr->name) == 0)) {
 		da = last_attr;
 	} else {
-		da = fr_dict_attr_by_name(dict, attr);
 		last_attr = da;
 	}
 
@@ -1703,7 +1707,7 @@ int fr_dict_enum_add(fr_dict_t *dict, char const *attr, char const *alias, int v
 			return -1;
 		}
 
-		strlcpy(fixup->attrstr, attr, sizeof(fixup->attrstr));
+		strlcpy(fixup->attrstr, da->name, sizeof(fixup->attrstr));
 		fixup->dval = dval;
 
 		/*
@@ -1731,7 +1735,7 @@ int fr_dict_enum_add(fr_dict_t *dict, char const *attr, char const *alias, int v
 				 *	name and value.  There are lots in
 				 *	dictionary.ascend.
 				 */
-				old = fr_dict_enum_by_name(dict, da, alias);
+				old = fr_dict_enum_by_name(da, alias);
 				if (old && (old->value == dval->value)) {
 					talloc_free(dval);
 					return 0;
@@ -1739,8 +1743,8 @@ int fr_dict_enum_add(fr_dict_t *dict, char const *attr, char const *alias, int v
 			}
 
 			talloc_free(dval);
-			fr_strerror_printf("Duplicate VALUE name '%s' for attribute '%s'", alias,
-					   attr);
+
+			fr_strerror_printf("Duplicate VALUE name '%s' for attribute '%s'", alias, da->name);
 			return -1;
 		}
 	}
@@ -2036,9 +2040,7 @@ static int dict_read_process_attribute(fr_dict_t *dict, fr_dict_attr_t const *pa
 	/*
 	 *	Add it in.
 	 */
-	if (fr_dict_attr_add(dict, parent, argv[0], attr, type, flags) < 0) {
-		return -1;
-	}
+	if (fr_dict_attr_add(dict, parent, argv[0], attr, type, flags) < 0) return -1;
 
 	return 0;
 }
@@ -2094,7 +2096,8 @@ static int dict_read_process_named_attribute(fr_dict_t *dict, fr_dict_attr_t con
  */
 static int dict_read_process_value(fr_dict_t *dict, char **argv, int argc)
 {
-	unsigned int value;
+	unsigned int 		value;
+	fr_dict_attr_t const	*da;
 
 	if (argc != 3) {
 		fr_strerror_printf("Invalid VALUE syntax");
@@ -2109,7 +2112,14 @@ static int dict_read_process_value(fr_dict_t *dict, char **argv, int argc)
 		return -1;
 	}
 
-	if (fr_dict_enum_add(dict, argv[0], argv[1], value) < 0) return -1;
+	da = fr_dict_attr_by_name(dict, argv[0]);
+	if (!da) {
+		fr_strerror_printf("Attribute '%s' must be defined before its VALUE(s)", argv[0]);
+		return -1;
+	}
+
+	if (fr_dict_enum_add(da, argv[1], value) < 0) return -1;
+
 	return 0;
 }
 
@@ -2275,17 +2285,110 @@ static int dict_read_process_vendor(fr_dict_t *dict, char **argv, int argc)
 	return 0;
 }
 
+/** Set a new root dictionary attribute
+ *
+ * @note The previous root (and its children), will be freed.
+ * @param dict to modify.
+ * @param name of dictionary root.
+ */
+static void dict_root_set(fr_dict_t *dict, char const *name, unsigned int proto_number)
+{
+	size_t len = strlen(name);
+
+	if (dict->root) talloc_free(dict->root);
+
+	dict->root = (fr_dict_attr_t *)talloc_zero_array(dict, uint8_t, sizeof(fr_dict_attr_t) + len);
+	strlcpy(dict->root->name, name, len + 1);
+	talloc_set_type(dict->root, fr_dict_attr_t);
+
+	dict->root->attr = proto_number;
+	dict->root->flags.is_root = 1;
+	dict->root->type = PW_TYPE_TLV;
+	dict->root->flags.type_size = 1;
+	dict->root->flags.length = 1;
+	VERIFY_DA(dict->root);
+}
+
 /** Parser context for dict_from_file
  *
  * Allows vendor and TLV context to persist across $INCLUDEs
  */
 typedef struct dict_from_file_ctx {
 	fr_dict_t		*dict;
+	fr_dict_t		*old_dict;
 	unsigned int		block_vendor;
 	int			block_tlv_depth;
 	fr_dict_attr_t const	*parent;
 	fr_dict_attr_t const	*block_tlv[FR_DICT_TLV_NEST_MAX];
 } dict_from_file_ctx_t;
+
+/** Register the specified dictionary as a protocol dictionary
+ *
+ * Allows vendor and TLV context to persist across $INCLUDEs
+ */
+static int dict_read_process_protocol(fr_dict_t *dict, char **argv, int argc)
+{
+	unsigned int		value;
+
+	if ((argc < 2) || (argc > 3)) {
+		fr_strerror_printf("Missing arguments after PROTOCOL.  Expected PROTOCOL <num> <name>");
+		return -1;
+	}
+
+	/*
+	 *	 Validate all entries
+	 */
+	if (!dict_read_sscanf_i(argv[1], &value)) {
+		fr_strerror_printf("Invalid number '%s' following PROTOCOL", argv[1]);
+		return -1;
+	}
+
+	if (dict->root->attr != FR_PROTOCOL_UNSET) {
+		fr_strerror_printf("Protocol already set for this dictionary (num %i)", dict->root->attr);
+		return -1;
+	}
+
+	/*
+	 *	Set the number of the root attribute.
+	 *
+	 *	This means when we print OID trees, the first element
+	 *	is the protocol number.
+	 */
+	dict->root->attr = value;
+
+	/*
+	 *	Fixup the root attribute with the protocol name
+	 */
+	dict_root_set(dict, argv[0], value);
+
+	/*
+	 *	Look for a format statement.  This may specify the
+	 *	type length of the protocol's types.
+	 */
+	if (argc == 3) {
+		char const *p;
+		char *q;
+
+		if (strncasecmp(argv[2], "format=", 7) != 0) {
+			fr_strerror_printf("Invalid format for PROTOCOL.  Expected 'format=', got '%s'", argv[2]);
+			return -1;
+		}
+		p = argv[2] + 7;
+
+		dict->root->flags.type_size = strtoul(p, &q, 10);
+		if (q != (p + strlen(p))) {
+			fr_strerror_printf("Found trailing garbage '%s' after format specifier", p);
+			return -1;
+		}
+	} else {
+		dict->root->flags.type_size = 1;	/* Default */
+	}
+
+	if (fr_dict_protocol_add(dict) < 0) return -1;
+
+	return 0;
+}
+
 
 /*
  *	Initialize the dictionary.
@@ -2505,6 +2608,73 @@ static int _dict_from_file(dict_from_file_ctx_t *ctx,
 			continue;
 		}
 
+		/*
+		 *	Process PROTOCOL line.  Defines a new protocol.
+		 */
+		if (strcasecmp(argv[0], "PROTOCOL") == 0) {
+			if (argc < 2) {
+				fr_strerror_printf("Invalid PROTOCOL entry");
+				goto error;
+			}
+			if (dict_read_process_protocol(ctx->dict, argv + 1, argc - 1) == -1) goto error;
+			continue;
+		}
+
+		/*
+		 *	Switches the current protocol context
+		 */
+		if (strcasecmp(argv[0], "BEGIN-PROTOCOL") == 0) {
+			fr_dict_t *found;
+
+			ctx->old_dict = ctx->dict;
+
+			if (argc != 2) {
+				fr_strerror_printf("Invalid BEGIN-PROTOCOL entry");
+				goto error;
+			}
+
+			found = fr_dict_by_protocol_name(argv[1]);
+			if (!found) {
+				fr_strerror_printf("Unknown protocol '%s'", argv[1]);
+				goto error;
+			}
+
+			ctx->dict = found;
+
+			continue;
+		}
+
+		/*
+		 *	Switches back to the previous protocol context
+		 */
+		if (strcasecmp(argv[0], "END-PROTOCOL") == 0) {
+			fr_dict_t const *found;
+
+			if (argc != 2) {
+				fr_strerror_printf("Invalid END-PROTOCOL entry");
+				goto error;
+			}
+
+			found = fr_dict_by_protocol_name(argv[1]);
+			if (!found) {
+				fr_strerror_printf("END-PROTOCOL %s does not refer to a valid protocol", argv[1]);
+				goto error;
+			}
+
+			if (found != ctx->dict) {
+				fr_strerror_printf("END-PROTOCOL %s does not match previous BEGIN-PROTOCOL %s",
+						   argv[1], found->root->name);
+				goto error;
+			}
+
+			ctx->dict = ctx->old_dict;	/* Switch back to the old dictionary */
+
+			continue;
+		}
+
+		/*
+		 *	Switches TLV parent context
+		 */
 		if (strcasecmp(argv[0], "BEGIN-TLV") == 0) {
 			fr_dict_attr_t const *common;
 
@@ -2724,88 +2894,34 @@ static int dict_from_file(fr_dict_t *dict,
 
 	return _dict_from_file(&ctx, dir_name, filename, src_file, src_line);
 }
-
-
-static bool defined_cast_types = false;
-
-/** Initialise the global protocol hashes
+/** Allocate a new dictionary
  *
- * @note Must be called before any other dictionary functions.
- *
-
- * @param ctx to allocate the hashes in.
- * @return
- *	- 0 on success.
- *	- -1 on failure.
+ * @param ctx to allocate dictionary in.
  */
-static int fr_dict_global_init(TALLOC_CTX *ctx)
-{
-	if (protocol_by_name && protocol_by_num) return 0;
-
-	protocol_by_name = fr_hash_table_create(ctx, dict_protocol_name_hash, dict_protocol_name_cmp, NULL);
-	if (!protocol_by_name) {
-		fr_strerror_printf("Failed initializing protocol_by_name hash");
-		return -1;
-	}
-	protocol_by_num = fr_hash_table_create(ctx, dict_protocol_num_hash, dict_protocol_num_cmp, NULL);
-	if (!protocol_by_num) {
-		fr_strerror_printf("Failed initializing protocol_by_num hash");
-		return -1;
-	}
-
-	return 0;
-}
-
-/** (re)initialize a protocol dictionary
- *
- * Initialize the directory, then fix the attr member of all attributes.
- *
- * First dictionary initialised will be set as the default internal dictionary.
- *
- * @param[in] ctx to allocate the dictionary from.
- * @param[out] out Where to write a pointer to the new dictionary.  Will free existing
- *	dictionary if files have changed and *out is not NULL.
- * @param[in] dir to read dictionary files from.
- * @param[in] fn file name to read.
- * @param[in] name to use for the root attributes.
- * @return
- *	- 0 on success.
- *	- -1 on failure.
- */
-int fr_dict_from_file(TALLOC_CTX *ctx, fr_dict_t **out, char const *dir, char const *fn, char const *name)
+static fr_dict_t *fr_dict_alloc(TALLOC_CTX *ctx)
 {
 	fr_dict_t *dict;
 
-	if (!*out) {
-		/* Pre-Allocate 5MB of pool memory for rapid startup */
-		dict = talloc_zero(ctx, fr_dict_t);
-		dict->pool = talloc_pool(dict, (1024 * 1024 * 5));
-	} else {
-		dict = *out;
-		if (dict_stat_check(dict, dir, fn)) return 0;
+	dict = talloc_zero(ctx, fr_dict_t);
+	if (!dict) {
+	error:
+		fr_strerror_printf("Failed allocating memory for dictionary");
+		talloc_free(dict);
+		return NULL;
 	}
 
 	/*
-	 *	Free the old dictionaries
+	 *	Pre-Allocate 5MB of pool memory for rapid startup
 	 */
-	if (*out == fr_dict_internal) fr_dict_internal = dict;
-	TALLOC_FREE(*out);
-
-	/*
-	 *	Remove this at some point...
-	 */
-	if (!fr_dict_internal) fr_dict_internal = dict;
+	dict->pool = talloc_pool(dict, (1024 * 1024 * 5));
+	if (!dict->pool) goto error;
 
 	/*
 	 *	Create the table of vendor by name.   There MAY NOT
 	 *	be multiple vendors of the same name.
 	 */
 	dict->vendors_by_name = fr_hash_table_create(dict, dict_vendor_name_hash, dict_vendor_name_cmp, hash_pool_free);
-	if (!dict->vendors_by_name) {
-	error:
-		talloc_free(dict);
-		return -1;
-	}
+	if (!dict->vendors_by_name) goto error;
 
 	/*
 	 *	Create the table of vendors by value.  There MAY
@@ -2837,15 +2953,82 @@ int fr_dict_from_file(TALLOC_CTX *ctx, fr_dict_t **out, char const *dir, char co
 	/*
 	 *	Magic dictionary root attribute
 	 */
-	dict->root = (fr_dict_attr_t *)talloc_zero_array(dict, uint8_t, sizeof(fr_dict_attr_t) + strlen(name));
-	strcpy(dict->root->name, name);
-	talloc_set_type(dict->root, fr_dict_attr_t);
-	dict->root->flags.is_root = 1;
-	dict->root->type = PW_TYPE_TLV;
-	dict->root->flags.type_size = 1;
-	dict->root->flags.length = 1;
+	dict_root_set(dict, "root", 0);
 
-	dict->enum_fixup = NULL;        /* just to be safe. */
+	return dict;
+}
+
+/** Initialise the global protocol hashes
+ *
+ * @note Must be called before any other dictionary functions.
+ *
+
+ * @param ctx to allocate the hashes in.
+ * @return
+ *	- 0 on success.
+ *	- -1 on failure.
+ */
+static int fr_dict_global_init(TALLOC_CTX *ctx)
+{
+	if (protocol_by_name && protocol_by_num) return 0;
+
+	protocol_by_name = fr_hash_table_create(ctx, dict_protocol_name_hash, dict_protocol_name_cmp, NULL);
+	if (!protocol_by_name) {
+		fr_strerror_printf("Failed initializing protocol_by_name hash");
+		return -1;
+	}
+	protocol_by_num = fr_hash_table_create(ctx, dict_protocol_num_hash, dict_protocol_num_cmp, NULL);
+	if (!protocol_by_num) {
+		fr_strerror_printf("Failed initializing protocol_by_num hash");
+		return -1;
+	}
+
+	return 0;
+}
+
+/** (Re-)Initialize the special internal dictionary
+ *
+ * This dictionary has additional programatically generated attributes added to it.
+ *
+ * @param[in] ctx		to allocate dictionary in.
+ * @param[out] out		Where to write pointer to the internal dictionary.
+ * @param[in] dir		dictionary is located in.
+ * @param[in] internal_name	name of the internal dictionary dir (may be NULL).
+ * @return
+ *	- 0 on success.
+ *	- -1 on failure.
+ */
+int fr_dict_internal_afrom_file(TALLOC_CTX *ctx, fr_dict_t **out, char const *dir, char const *internal_name)
+{
+	fr_dict_t	*dict = fr_dict_internal;
+	char		*dict_dir;
+	char		*tmp;
+
+	memcpy(&tmp, &dir, sizeof(tmp));
+	dict_dir = internal_name ? talloc_asprintf(NULL, "%s%c%s", dir, FR_DIR_SEP, internal_name) : tmp;
+
+	if ((!protocol_by_name || !protocol_by_num) && (fr_dict_global_init(ctx) < 0)) return -1;
+
+	if (!dict) {
+		dict = fr_dict_alloc(ctx);
+		if (!dict) {
+		error:
+			if (!fr_dict_internal) talloc_free(dict);
+			if (internal_name) talloc_free(dict_dir);
+			return -1;
+		}
+
+		/*
+		 *	Set the root name of the dictionary
+		 */
+		dict_root_set(dict, "internal", 0);
+	} else {
+		if (dict_stat_check(dict, dir, FR_DICTIONARY_FILE)) {
+			if (internal_name) talloc_free(dict_dir);
+			return 0;
+		}
+	}
+
 	/*
 	 *	Add cast attributes.  We do it this way,
 	 *	so cast attributes get added automatically for new types.
@@ -2854,25 +3037,26 @@ int fr_dict_from_file(TALLOC_CTX *ctx, fr_dict_t **out, char const *dir, char co
 	 *	fr_dict_attr_add(), because we know what we're doing, and
 	 *	that function does too many checks.
 	 */
-	if (!defined_cast_types) {
+	{
 		FR_NAME_NUMBER const	*p;
-		fr_dict_attr_flags_t	flags;
+		fr_dict_attr_flags_t	flags = {
+						.internal = 1
+					};
 		char			*type_name;
-
-		memset(&flags, 0, sizeof(flags));
-
-		flags.internal = 1;
 
 		for (p = dict_attr_types; p->name; p++) {
 			fr_dict_attr_t *n;
 
 			type_name = talloc_asprintf(dict->pool, "Tmp-Cast-%s", p->name);
 
-			n = fr_dict_attr_alloc(dict->pool, dict->root, type_name,
-					       0, PW_CAST_BASE + p->number, p->number, &flags);
+			n = fr_dict_attr_alloc(dict->pool, fr_dict_root(dict), type_name, 0,
+					       PW_CAST_BASE + p->number, p->number, &flags);
 			if (!n) goto error;
 
-			if (!fr_hash_table_insert(dict->attributes_by_name, n)) goto error;
+			if (!fr_hash_table_insert(dict->attributes_by_name, n)) {
+				fr_strerror_printf("Failed inserting \"%s\" into internal dictionary", type_name);
+				goto error;
+			}
 
 			/*
 			 *	Set up parenting for the attribute.
@@ -2881,14 +3065,84 @@ int fr_dict_from_file(TALLOC_CTX *ctx, fr_dict_t **out, char const *dir, char co
 
 			talloc_free(type_name);
 		}
-		defined_cast_types = true;
 	}
 
-	if (dict_from_file(dict, dir, fn, NULL, 0) < 0) goto error;
+	if (dict_dir && dict_from_file(dict, dict_dir, FR_DICTIONARY_FILE, NULL, 0) < 0) goto error;
+
+	*out = dict;
+	if (!fr_dict_internal) fr_dict_internal = dict;
+
+	return 0;
+}
+
+/** (Re)-initialize a protocol dictionary
+ *
+ * Initialize the directory, then fix the attr member of all attributes.
+ *
+ * First dictionary initialised will be set as the default internal dictionary.
+ *
+ * @param[in] ctx		to allocate the dictionary from.
+ * @param[out] out		Where to write a pointer to the new dictionary.  Will free existing
+ *				dictionary if files have changed and *out is not NULL.
+ * @param[in] base_dir		containing all the protocol directories.
+ * @param[in] proto_name	that we're loading the dictionary for.
+ * @return
+ *	- 0 on success.
+ *	- -1 on failure.
+ */
+int fr_dict_protocol_afrom_file(TALLOC_CTX *ctx, fr_dict_t **out,
+				char const *base_dir, char const *proto_name)
+{
+	fr_dict_t	*dict;
+	char		*dir;
+	char		*proto_dir;
+	char		*p;
+
+	if (!protocol_by_name || !protocol_by_num) {
+		fr_strerror_printf("Dictionary not yet initialized call fr_dict_internal_afrom_file first");
+		return -1;
+	}
+
+	/*
+	 *	Increment the reference count if the dictionary
+	 *	has already been loaded.
+	 */
+	if (!*out) {
+		*out = fr_dict_by_protocol_name(proto_name);
+		if (*out) {
+			 talloc_increase_ref_count(*out);
+			 return 0;
+		}
+	}
+
+	/*
+	 *	Replace '_' with '/'
+	 */
+	proto_dir = talloc_strdup(ctx, proto_name);
+	for (p = proto_dir; *p; p++) if (*p == '_') *p = FR_DIR_SEP;
+
+	dir = talloc_asprintf(proto_dir, "%s%c%s", base_dir, FR_DIR_SEP, proto_dir);
+	if (!*out) {
+		dict = fr_dict_alloc(ctx);
+		if (!dict) {
+		error:
+			talloc_free(proto_dir);
+			return -1;
+		}
+	} else {
+		dict = *out;
+		if (dict_stat_check(dict, dir, FR_DICTIONARY_FILE)) return 0;
+	}
+
+	dict->enum_fixup = NULL;        /* just to be safe. */
+
+	if (dict_from_file(dict, dir, FR_DICTIONARY_FILE, NULL, 0) < 0) goto error;
+
+	talloc_free(proto_dir);
 
 	if (dict->enum_fixup) {
-		fr_dict_attr_t const *a;
-		dict_enum_fixup_t *this, *next;
+		fr_dict_attr_t const	*a;
+		dict_enum_fixup_t	*this, *next;
 
 		for (this = dict->enum_fixup; this != NULL; this = next) {
 			next = this->next;
@@ -2948,12 +3202,20 @@ int fr_dict_from_file(TALLOC_CTX *ctx, fr_dict_t **out, char const *dir, char co
 	return 0;
 }
 
-int fr_dict_read(fr_dict_t *dict, char const *dir, char const *filename)
+/** Adds additional attributes to an existing dictionary
+ *
+ * Used to include attributes from custom dictionaries
+ *
+ * @param dict Should usually be the inernal dictionary.
+ *	Note: Attributes can still be added to other dictionaries, using begin protocol.
+ */
+int fr_dict_from_file(fr_dict_t *dict, char const *dir, char const *filename)
 {
 	INTERNAL_IF_NULL(dict);
 
 	if (!dict->attributes_by_name) {
-		fr_strerror_printf("%s: Must call fr_dict_from_file() before fr_dict_read()", __FUNCTION__);
+		fr_strerror_printf("%s: Must call fr_dict_protocol_afrom_file() before fr_dict_from_file()",
+				   __FUNCTION__);
 		return -1;
 	}
 
@@ -3021,6 +3283,7 @@ fr_dict_attr_t *fr_dict_unknown_acopy(TALLOC_CTX *ctx, fr_dict_attr_t const *da)
 	}
 
 	new = fr_dict_attr_alloc(ctx, parent, da->name, da->vendor, da->attr, da->type, &da->flags);
+	new->flags.is_unknown = 1;
 	new->parent = parent;
 	new->depth = da->depth;
 
@@ -4040,6 +4303,38 @@ fr_dict_t *fr_dict_by_attr_name(fr_dict_attr_t const **found, char const *name)
 	return search.found_dict;
 }
 
+/** Attempt to locate the protocol dictionary containing an attribute
+ *
+ * @note Unlike fr_dict_by_attr_name, doesn't search through all the dictionaries,
+ *	just uses the fr_dict_attr_t hierarchy and the talloc hierarchy to locate
+ *	the dictionary (much much faster and more scalable).
+ *
+ * @param[in] da To get the containing dictionary for.
+ * @return
+ *	- The dictionary containing da.
+ *	- NULL.
+ */
+fr_dict_t *fr_dict_by_da(fr_dict_attr_t const *da)
+{
+	fr_dict_attr_t const *da_p = da;
+
+	while (da_p->parent) {
+		da_p = da_p->parent;
+		VERIFY_DA(da_p);
+	}
+
+	if (!da_p->flags.is_root) {
+		fr_strerror_printf("%s: Attribute has not been inserted into a dictionary", __FUNCTION__, da->name);
+		return NULL;
+	}
+
+	/*
+	 *	Parent of the root attribute must
+	 *	be the dictionary.
+	 */
+	return talloc_get_type_abort(talloc_parent(da_p), fr_dict_t);
+}
+
 /** Look up a vendor by its name
  *
  * @param[in] dict of protocol context we're operating in.  If NULL the internal
@@ -4098,6 +4393,8 @@ fr_dict_vendor_t const *fr_dict_vendor_by_num(fr_dict_t *dict, int vendorpec)
 fr_dict_attr_t const *fr_dict_vendor_attr_by_da(fr_dict_attr_t const *da)
 {
 	fr_dict_attr_t const *da_p = da;
+
+	VERIFY_DA(da);
 
 	while (da_p->parent) {
 		if (da_p->type == PW_TYPE_VENDOR) break;
@@ -4173,6 +4470,9 @@ fr_dict_attr_t const *fr_dict_vendor_attr_by_num(fr_dict_t *dict, unsigned int v
  * If the attribute does not exist, don't advance the pointer and return
  * NULL.
  *
+ * @note In this instance, the dictionary is considered the union of the internal
+ *	dictionary, and protocol dictionary.
+ *
  * @param[in] dict of protocol context we're operating in.  If NULL the internal
  *	dictionary will be used.
  * @param[in,out] name string start.
@@ -4182,11 +4482,11 @@ fr_dict_attr_t const *fr_dict_vendor_attr_by_num(fr_dict_t *dict, unsigned int v
  */
 fr_dict_attr_t const *fr_dict_attr_by_name_substr(fr_dict_t *dict, char const **name)
 {
-	fr_dict_attr_t *find;
-	fr_dict_attr_t const *da;
-	char const *p;
-	size_t len;
-	uint32_t buffer[(sizeof(*find) + FR_DICT_ATTR_MAX_NAME_LEN + 3) / 4];
+	fr_dict_attr_t		*find;
+	fr_dict_attr_t const	*found;
+	char const 		*p;
+	size_t			len;
+	uint32_t		buffer[(sizeof(*find) + FR_DICT_ATTR_MAX_NAME_LEN + 3) / 4];
 
 	if (!name || !*name) return NULL;
 	INTERNAL_IF_NULL(dict);
@@ -4206,19 +4506,42 @@ fr_dict_attr_t const *fr_dict_attr_by_name_substr(fr_dict_t *dict, char const **
 	}
 	strlcpy(find->name, *name, len + 1);
 
-	da = fr_hash_table_finddata(dict->attributes_by_name, find);
-	if (!da) {
-		fr_strerror_printf("Unknown attribute '%s'", find->name);
-		return NULL;
+	found = fr_hash_table_finddata(dict->attributes_by_name, find);
+	if (!found) {
+		if (!fr_dict_internal && (dict == fr_dict_internal)) {
+		unknown:
+			fr_strerror_printf("Unknown attribute '%s'", find->name);
+			return NULL;
+		}
+
+		/*
+		 *	Fallback to the magic internal dictionary
+		 *
+		 *	This is not a hack, it's by design.
+		 */
+		// found = fr_hash_table_finddata(fr_dict_internal->attributes_by_name, find);
+		// if (!found) goto unknown;
+
+		/*
+		 *	Search for attribute in all dictionaries
+		 *
+		 *	@FIXME hack.
+		 */
+		fr_dict_by_attr_name(&found, find->name);
+		if (!found) goto unknown;
 	}
+
 	*name = p;
 
-	return da;
+	return found;
 }
 
 /** Locate a #fr_dict_attr_t by its name
  *
  * @note Unlike attribute numbers, attribute names are unique to the dictionary.
+ *
+ * @note In this instance, the dictionary is considered the union of the internal
+ *	dictionary, and protocol dictionary.
  *
  * @param[in] dict of protocol context we're operating in.  If NULL the internal
  *	dictionary will be used.
@@ -4229,16 +4552,43 @@ fr_dict_attr_t const *fr_dict_attr_by_name_substr(fr_dict_t *dict, char const **
  */
 fr_dict_attr_t const *fr_dict_attr_by_name(fr_dict_t *dict, char const *name)
 {
-	fr_dict_attr_t *da;
-	uint32_t buffer[(sizeof(*da) + FR_DICT_ATTR_MAX_NAME_LEN + 3) / 4];
+	fr_dict_attr_t *find;
+	fr_dict_attr_t const *found;
+
+	uint32_t buffer[(sizeof(*find) + FR_DICT_ATTR_MAX_NAME_LEN + 3) / 4];
 
 	if (!name) return NULL;
 	INTERNAL_IF_NULL(dict);
 
-	da = (fr_dict_attr_t *)buffer;
-	strlcpy(da->name, name, FR_DICT_ATTR_MAX_NAME_LEN + 1);
+	find = (fr_dict_attr_t *)buffer;
+	strlcpy(find->name, name, FR_DICT_ATTR_MAX_NAME_LEN + 1);
 
-	return fr_hash_table_finddata(dict->attributes_by_name, da);
+	found = fr_hash_table_finddata(dict->attributes_by_name, find);
+	if (!found) {
+		if (!fr_dict_internal && (dict == fr_dict_internal)) {
+		unknown:
+			fr_strerror_printf("Unknown attribute '%s'", find->name);
+			return NULL;
+		}
+
+		/*
+		 *	Fallback to the magic internal dictionary
+		 *
+		 *	This is not a hack, it's by design.
+		 */
+		// found = fr_hash_table_finddata(fr_dict_internal->attributes_by_name, find);
+		// if (!found) goto unknown;
+
+		/*
+		 *	Search for attribute in all dictionaries
+		 *
+		 *	@FIXME hack.
+		 */
+		fr_dict_by_attr_name(&found, find->name);
+		if (!found) goto unknown;
+	}
+
+	return found;
 }
 
 /** Lookup a #fr_dict_attr_t by its vendor and attribute numbers
@@ -4308,6 +4658,8 @@ inline fr_dict_attr_t const *fr_dict_attr_child_by_da(fr_dict_attr_t const *pare
 {
 	fr_dict_attr_t const *bin;
 
+	VERIFY_DA(parent);
+
 	if (!parent->children) return NULL;
 
 	/*
@@ -4349,6 +4701,8 @@ inline fr_dict_attr_t const *fr_dict_attr_child_by_num(fr_dict_attr_t const *par
 {
 	fr_dict_attr_t const *bin;
 
+	VERIFY_DA(parent);
+
 	if (!parent->children) return NULL;
 
 	/*
@@ -4380,21 +4734,21 @@ inline fr_dict_attr_t const *fr_dict_attr_child_by_num(fr_dict_attr_t const *par
 
 /** Lookup the structure representing an enum value in a #fr_dict_attr_t
  *
- * @param[in] dict of protocol context we're operating in.  If NULL the internal
- *	dictionary will be used.
  * @param[in] da to search in.
  * @param[in] value number to search for.
  * @return
  * 	- Matching #fr_dict_enum_t.
  * 	- NULL if no matching #fr_dict_enum_t could be found.
  */
-fr_dict_enum_t *fr_dict_enum_by_da(fr_dict_t *dict, fr_dict_attr_t const *da, int64_t value)
+fr_dict_enum_t *fr_dict_enum_by_da(fr_dict_attr_t const *da, int64_t value)
 {
-	fr_dict_enum_t dval, *dv;
+	fr_dict_enum_t	*dv;
+	fr_dict_enum_t	dval;
+	fr_dict_t	*dict = fr_dict_by_da(da);
 
-	if (!da) return NULL;
+	if (!dict || !da) return NULL;
 
-	INTERNAL_IF_NULL(dict);
+	VERIFY_DA(da);
 
 	/*
 	 *	First, look up aliases.
@@ -4416,38 +4770,43 @@ fr_dict_enum_t *fr_dict_enum_by_da(fr_dict_t *dict, fr_dict_attr_t const *da, in
 
 /** Lookup the name of an enum value in a #fr_dict_attr_t
  *
- * @param[in] dict of protocol context we're operating in.  If NULL the internal
- *	dictionary will be used.
  * @param[in] da to search in.
  * @param[in] value number to search for.
  * @return
  * 	- Name of value.
  * 	- NULL if no matching value could be found.
  */
-char const *fr_dict_enum_name_by_da(fr_dict_t *dict, fr_dict_attr_t const *da, int64_t value)
+char const *fr_dict_enum_name_by_da(fr_dict_attr_t const *da, int64_t value)
 {
-	fr_dict_enum_t *dv;
+	fr_dict_enum_t	*dv;
+	fr_dict_t	*dict = fr_dict_by_da(da);
 
-	if (!da) return NULL;
+	if (!dict || !da) return NULL;
 
-	INTERNAL_IF_NULL(dict);
+	VERIFY_DA(da);
 
-	dv = fr_dict_enum_by_da(dict, da, value);
+	dv = fr_dict_enum_by_da(da, value);
 	if (!dv) return "";
 
 	return dv->name;
 }
 
-/*
- *	Get a value by its name, keyed off of an attribute.
+/** Get a value by its name, keyed off of an attribute.
+ *
  */
-fr_dict_enum_t *fr_dict_enum_by_name(fr_dict_t *dict, fr_dict_attr_t const *da, char const *name)
+fr_dict_enum_t *fr_dict_enum_by_name(fr_dict_attr_t const *da, char const *name)
 {
-	fr_dict_enum_t *my_dv, *dv;
-	uint32_t buffer[(sizeof(*my_dv) + FR_DICT_ENUM_MAX_NAME_LEN + 3) / 4];
+	fr_dict_enum_t	*my_dv, *dv;
+	uint32_t	buffer[(sizeof(*my_dv) + FR_DICT_ENUM_MAX_NAME_LEN + 3) / 4];
+
+	fr_dict_t	*dict;
 
 	if (!name) return NULL;
-	INTERNAL_IF_NULL(dict);
+
+	VERIFY_DA(da);
+
+	dict = fr_dict_by_da(da);
+	if (!dict) return NULL;
 
 	my_dv = (fr_dict_enum_t *)buffer;
 	my_dv->da = da;

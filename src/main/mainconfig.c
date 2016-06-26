@@ -729,16 +729,24 @@ int main_config_init(void)
 	 *	Read the distribution dictionaries first, then
 	 *	the ones in raddb.
 	 */
-	DEBUG2("including dictionary file %s/%s", main_config.dictionary_dir, FR_DICTIONARY_FILE);
-	if (fr_dict_from_file(NULL, &main_config.dict, main_config.dictionary_dir, FR_DICTIONARY_FILE, "radius") != 0) {
-		ERROR("Errors reading dictionary: %s",
-		      fr_strerror());
+	DEBUG2("including dictionary file %s/%s/%s", main_config.dictionary_dir,
+	       FR_DICTIONARY_INTERNAL_DIR, FR_DICTIONARY_FILE);
+	if (fr_dict_internal_afrom_file(NULL, &main_config.dict, main_config.dictionary_dir,
+					FR_DICTIONARY_INTERNAL_DIR) != 0) {
+		ERROR("Error reading dictionary: %s", fr_strerror());
+		return -1;
+	}
+
+	DEBUG2("including dictionary file %s/radius/%s", main_config.dictionary_dir, FR_DICTIONARY_FILE);
+	if (fr_dict_protocol_afrom_file(NULL, &fr_dict_radius,
+					main_config.dictionary_dir, "radius") < 0) {
+		ERROR("Error reading dictionary: %s", fr_strerror());
 		return -1;
 	}
 
 #define DICT_READ_OPTIONAL(_d, _n) \
 do {\
-	switch (fr_dict_read(main_config.dict, _d, _n)) {\
+	switch (fr_dict_from_file(main_config.dict, _d, _n)) {\
 	case -1:\
 		ERROR("Error reading %s/%s: %s", _d, _n, fr_strerror());\
 		return -1;\

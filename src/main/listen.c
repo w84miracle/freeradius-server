@@ -190,8 +190,9 @@ int listen_bootstrap(CONF_SECTION *server, CONF_SECTION *cs, char const *server_
 		    (strcmp(value, "auth") == 0) ||
 		    (strcmp(value, "acct") == 0) ||
 		    (strcmp(value, "auth+acct") == 0))) {
-		static int	max_listener = 256;
-		char		buffer[256];
+		static int		max_listener = 256;
+		char			buffer[256];
+		fr_dict_attr_t const	*da;
 
 		if (cp) {
 			snprintf(buffer, sizeof(buffer), "%s_%s", cf_pair_value(cp), value);
@@ -202,12 +203,14 @@ int listen_bootstrap(CONF_SECTION *server, CONF_SECTION *cs, char const *server_
 		if (!module) return -1;
 		proto = (rad_protocol_t const *)module->common;
 
+		da = fr_dict_attr_by_num(fr_dict_internal, 0, PW_LISTEN_SOCKET_TYPE);
+
 		/*
 		 *	We need numbers for internal use.
 		 */
-		dv = fr_dict_enum_by_name(NULL, fr_dict_attr_by_num(NULL, 0, PW_LISTEN_SOCKET_TYPE), value);
+		dv = fr_dict_enum_by_name(da, value);
 		if (!dv) {
-			if (fr_dict_enum_add(NULL, "Listen-Socket-Type", value, max_listener++) < 0) {
+			if (fr_dict_enum_add(da, value, max_listener++) < 0) {
 				cf_log_err_cs(cs,
 					      "Failed adding dictionary entry for protocol %s: %s",
 					      value, fr_strerror());
@@ -239,7 +242,7 @@ int listen_bootstrap(CONF_SECTION *server, CONF_SECTION *cs, char const *server_
 	/*
 	 *	The type MUST now be defined in the dictionaries.
 	 */
-	dv = fr_dict_enum_by_name(NULL, fr_dict_attr_by_num(NULL, 0, PW_LISTEN_SOCKET_TYPE), value);
+	dv = fr_dict_enum_by_name(fr_dict_attr_by_num(NULL, 0, PW_LISTEN_SOCKET_TYPE), value);
 	if (!dv) {
 		cf_log_err_cs(cs, "Failed finding dictionary entry for protocol %s", value);
 		talloc_const_free(module);
@@ -628,7 +631,7 @@ rlm_rcode_t rad_status_server(REQUEST *request)
 	case RAD_LISTEN_NONE:
 #endif
 	case RAD_LISTEN_AUTH:
-		dval = fr_dict_enum_by_name(NULL, fr_dict_attr_by_num(NULL, 0, PW_AUTZ_TYPE), "Status-Server");
+		dval = fr_dict_enum_by_name(fr_dict_attr_by_num(NULL, 0, PW_AUTZ_TYPE), "Status-Server");
 		if (dval) {
 			rcode = process_authorize(dval->value, request);
 		} else {
@@ -655,7 +658,7 @@ rlm_rcode_t rad_status_server(REQUEST *request)
 
 #ifdef WITH_ACCOUNTING
 	case RAD_LISTEN_ACCT:
-		dval = fr_dict_enum_by_name(NULL, fr_dict_attr_by_num(NULL, 0, PW_ACCT_TYPE), "Status-Server");
+		dval = fr_dict_enum_by_name(fr_dict_attr_by_num(NULL, 0, PW_ACCT_TYPE), "Status-Server");
 		if (dval) {
 			rcode = process_accounting(dval->value, request);
 		} else {
@@ -682,7 +685,7 @@ rlm_rcode_t rad_status_server(REQUEST *request)
 		 *	the WG.  We like it, so it goes in here.
 		 */
 	case RAD_LISTEN_COA:
-		dval = fr_dict_enum_by_name(NULL, fr_dict_attr_by_num(NULL, 0, PW_RECV_COA_TYPE), "Status-Server");
+		dval = fr_dict_enum_by_name(fr_dict_attr_by_num(NULL, 0, PW_RECV_COA_TYPE), "Status-Server");
 		if (dval) {
 			rcode = process_recv_coa(dval->value, request);
 		} else {

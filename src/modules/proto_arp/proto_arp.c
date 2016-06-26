@@ -49,6 +49,8 @@ typedef struct arp_over_ether {
 	uint8_t		tpa[4];			//!< Target protocol address.
 } arp_over_ether_t;
 
+static fr_dict_t *dict_arp;
+
 static rlm_rcode_t arp_process(REQUEST *request)
 {
 	CONF_SECTION *unlang;
@@ -309,6 +311,24 @@ static int arp_socket_compile(CONF_SECTION *server_cs, UNUSED CONF_SECTION *list
 	return 0;
 }
 
+static int arp_load(void)
+{
+	int ret;
+
+	DEBUG2("including dictionary file %s/arp/%s", main_config.dictionary_dir, FR_DICTIONARY_FILE);
+	ret = fr_dict_protocol_afrom_file(NULL, &dict_arp, main_config.dictionary_dir, "arp");
+	if (ret < 0) {
+		ERROR("%s", fr_strerror());
+		return ret;
+	}
+
+	return 0;
+}
+
+static void arp_unload(void)
+{
+	talloc_free(dict_arp);
+}
 
 extern rad_protocol_t proto_arp;
 rad_protocol_t proto_arp = {
@@ -317,6 +337,9 @@ rad_protocol_t proto_arp = {
 	.inst_size	= sizeof(arp_socket_t),
 	.transports	= 0,
 	.tls		= false,
+
+	.load		= arp_load,
+	.unload		= arp_unload,
 	.bootstrap	= arp_socket_bootstrap,
 	.compile	= arp_socket_compile,
 	.parse		= arp_socket_parse,

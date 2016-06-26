@@ -79,6 +79,9 @@ static CONF_PARSER module_config[] = {
 	CONF_PARSER_TERMINATOR
 };
 
+static fr_dict_t *dict_radius;
+static fr_dict_attr_t const *vendor_asn;
+
 DIAG_OFF(format-nonliteral)
 /* handy SQL query tool */
 static int nvp_vquery(rlm_sqlhpwippool_t *data,
@@ -706,6 +709,27 @@ static rlm_rcode_t CC_HINT(nonnull) mod_accounting(void *instance, UNUSED void *
 	return RLM_MODULE_OK;
 }
 
+static int mod_load(void)
+{
+	if (fr_dict_protocol_afrom_file(NULL, &dict_radius, main_config.dictionary_dir, "radius") < 0) {
+		ERROR("rlm_sqlhpwippool - %s", fr_strerror());
+		return -1;
+	}
+
+	vendor_asn = fr_dict_vendor_attr_by_num(dict_radius, PW_VENDOR_SPECIFIC, VENDORPEC_ASN);
+	if (!vendor_asn) {
+		ERROR("rlm_sqlhpwippool - %s", fr_strerror());
+		return -1;
+	}
+
+	return 0;
+}
+
+static void mod_unload(void)
+{
+	talloc_decrease_ref_count(dict_radius);
+}
+
 extern rad_module_t rlm_sqlhpwippool;
 rad_module_t rlm_sqlhpwippool = {
 	.magic		= RLM_MODULE_INIT,
@@ -714,6 +738,8 @@ rad_module_t rlm_sqlhpwippool = {
 	.inst_size	= sizeof(rlm_sqlhpwippool_t),
 	.config		= module_config,
 	.instantiate	= mod_instantiate,
+	.load		= mod_load,
+	.unload		= mod_unload,
 	.methods = {
 		[MOD_ACCOUNTING]	= mod_accounting,
 		[MOD_POST_AUTH]		= mod_post_auth

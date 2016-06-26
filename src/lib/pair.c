@@ -870,6 +870,7 @@ int fr_pair_update_by_num(TALLOC_CTX *ctx, VALUE_PAIR **list,
 
 	vp = fr_pair_afrom_num(ctx, vendor, attr);
 	if (!vp) return -1;
+
 	vp->tag = tag;
 	if (value_box_steal(vp, &vp->data, value) < 0) return -1;
 
@@ -2352,23 +2353,23 @@ char const *fr_pair_value_enum(VALUE_PAIR const *vp, char buff[20])
 		return vp->vp_bool ? "yes" : "no";
 
 	case PW_TYPE_BYTE:
-		enumv = fr_dict_enum_by_da(NULL, vp->da, vp->vp_byte);
+		enumv = fr_dict_enum_by_da(vp->da, vp->vp_byte);
 		break;
 
 	case PW_TYPE_SHORT:
-		enumv = fr_dict_enum_by_da(NULL, vp->da, vp->vp_short);
+		enumv = fr_dict_enum_by_da(vp->da, vp->vp_short);
 		break;
 
 	case PW_TYPE_INTEGER:
-		enumv = fr_dict_enum_by_da(NULL, vp->da, vp->vp_integer);
+		enumv = fr_dict_enum_by_da(vp->da, vp->vp_integer);
 		break;
 
 	case PW_TYPE_INTEGER64:
-		enumv = fr_dict_enum_by_da(NULL, vp->da, vp->vp_integer64);
+		enumv = fr_dict_enum_by_da(vp->da, vp->vp_integer64);
 		break;
 
 	case PW_TYPE_SIGNED:
-		enumv = fr_dict_enum_by_da(NULL, vp->da, vp->vp_signed);
+		enumv = fr_dict_enum_by_da(vp->da, vp->vp_signed);
 		break;
 
 	default:

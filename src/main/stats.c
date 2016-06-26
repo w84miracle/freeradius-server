@@ -58,6 +58,8 @@ fr_stats_t proxy_dsc_stats = FR_STATS_INIT;
 #endif
 #endif
 
+static fr_dict_attr_t const *vendor_freeradius;
+
 void request_stats_final(REQUEST *request)
 {
 	if (request->master_state == REQUEST_COUNTED) return;
@@ -757,7 +759,7 @@ void request_stats_reply(REQUEST *request)
 #endif	/* WITH_PROXY */
 }
 
-void radius_stats_init(int flag)
+int radius_stats_init(int flag)
 {
 	if (!flag) {
 		gettimeofday(&start_time, NULL);
@@ -765,6 +767,14 @@ void radius_stats_init(int flag)
 	} else {
 		gettimeofday(&hup_time, NULL);
 	}
+
+	vendor_freeradius = fr_dict_vendor_attr_by_num(fr_dict_radius, PW_VENDOR_SPECIFIC, VENDORPEC_FREERADIUS);
+	if (!vendor_freeradius) {
+		ERROR("%s", fr_strerror());
+		return -1;
+	}
+
+	return 0;
 }
 
 void radius_stats_ema(fr_stats_ema_t *ema,

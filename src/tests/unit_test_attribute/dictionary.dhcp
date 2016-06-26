@@ -1,0 +1,6 @@
+#
+#  Additional DHCP options used by the DHCP unit tests
+#
+BEGIN-PROTOCOL DHCP
+
+END-PROTOCOL DHCP

@@ -88,7 +88,7 @@ rlm_rcode_t rad_accounting(REQUEST *request)
 		if (vp) {
 			acct_type = vp->vp_integer;
 			DEBUG2("  Found Acct-Type %s",
-			       fr_dict_enum_name_by_da(NULL, vp->da, acct_type));
+			       fr_dict_enum_name_by_da(vp->da, acct_type));
 		}
 		rcode = process_accounting(acct_type, request);
 		switch (rcode) {

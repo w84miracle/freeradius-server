@@ -38,6 +38,7 @@ RCSID("$Id$")
 #endif
 
 fr_dict_attr_t const *dict_aka_root;
+fr_dict_t *dict_aka;
 
 static rlm_rcode_t mod_process(UNUSED void *arg, eap_session_t *eap_session);
 
@@ -408,8 +409,20 @@ static int mod_load(void)
 		ERROR("Missing EAP-AKA-Root attribute");
 		return -1;
 	}
+
+	if (fr_dict_protocol_afrom_file(NULL, &dict_aka, main_config.dictionary_dir, "aka") < 0) {
+		LERROR("rlm_eap_aka - %s", fr_strerror());
+		return -1;
+	}
+
 	if (fr_sim_global_init() < 0) return -1;
+
 	return 0;
+}
+
+static void mod_unload(void)
+{
+	talloc_decrease_ref_count(dict_aka);
 }
 
 /*
@@ -421,6 +434,7 @@ rlm_eap_submodule_t rlm_eap_aka = {
 	.name		= "eap_aka",
 	.magic		= RLM_MODULE_INIT,
 	.load		= mod_load,
+	.unload		= mod_unload,
 	.session_init	= mod_session_init,	/* Initialise a new EAP session */
 	.process	= mod_process,		/* Process next round of EAP method */
 };

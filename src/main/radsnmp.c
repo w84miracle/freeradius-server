@@ -70,7 +70,9 @@ static const FR_NAME_NUMBER radsnmp_command_str[] = {
 };
 
 typedef struct radsnmp_conf {
-	fr_dict_t		*dict;			//!< Radius protocol dictionary.
+	fr_dict_t		*dict;			//!< Internal dictionary.
+	fr_dict_t		*dict_radius;		//!< RADIUS dictionary.
+	fr_dict_t		*dict_snmp;		//!< SNMP internal dictionary.
 	fr_dict_attr_t const	*snmp_root;		//!< SNMP protocol root in the FreeRADIUS dictionary.
 	fr_dict_attr_t const	*snmp_oid_root;		//!< First attribute to include at the start of OID responses.
 	fr_dict_attr_t const	*snmp_op;		//!< SNMP operation.
@@ -676,7 +678,7 @@ static int radsnmp_send_recv(radsnmp_conf_t *conf, int fd)
 
 			strlcpy(type_str, value, (p - value) + 1);
 
-			type = fr_dict_enum_by_name(NULL, conf->snmp_type, type_str);
+			type = fr_dict_enum_by_name(conf->snmp_type, type_str);
 			if (!type) {
 				ERROR("Unknown type \"%s\"", type_str);
 				RESPOND_STATIC("NONE");
@@ -1026,12 +1028,22 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	if (fr_dict_from_file(conf, &conf->dict, conf->dict_dir, FR_DICTIONARY_FILE, "radius") < 0) {
+	if (fr_dict_internal_afrom_file(conf, &conf->dict, conf->dict_dir, FR_DICTIONARY_INTERNAL_DIR) < 0) {
 		fr_perror("radsnmp");
 		return EXIT_FAILURE;
 	}
 
-	if (fr_dict_read(conf->dict, conf->radius_dir, FR_DICTIONARY_FILE) == -1) {
+	if (fr_dict_protocol_afrom_file(conf, &conf->dict_radius, conf->dict_dir, "radius") < 0) {
+		fr_perror("radsnmp");
+		return EXIT_FAILURE;
+	}
+
+	if (fr_dict_protocol_afrom_file(conf, &conf->dict_snmp, conf->dict_dir, "snmp") < 0) {
+		fr_perror("radsnmp");
+		return EXIT_FAILURE;
+	}
+
+	if (fr_dict_from_file(conf->dict, conf->dict_dir, FR_DICTIONARY_FILE) == -1) {
 		fr_perror("radsnmp");
 		return EXIT_FAILURE;
 	}

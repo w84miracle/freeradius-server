@@ -80,7 +80,7 @@ extern fr_stats_t	proxy_dsc_stats;
 #endif
 #endif
 
-void radius_stats_init(int flag);
+int radius_stats_init(int flag);
 void request_stats_final(REQUEST *request);
 void request_stats_reply(REQUEST *request);
 void radius_stats_ema(fr_stats_ema_t *ema,

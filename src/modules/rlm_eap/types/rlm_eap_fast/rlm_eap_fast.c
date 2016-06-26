@@ -28,6 +28,9 @@ USES_APPLE_DEPRECATED_API	/* OpenSSL API has been deprecated by Apple */
 #include "eap_fast_crypto.h"
 #include <freeradius-devel/md5.h>
 
+fr_dict_t		*dict_radius;
+fr_dict_attr_t const	*vendor_microsoft;
+
 /*
  *	An instance of EAP-FAST
  */
@@ -523,6 +526,30 @@ static rlm_rcode_t mod_session_init(void *type_arg, eap_session_t *eap_session)
 	return RLM_MODULE_OK;
 }
 
+static int mod_load(void)
+{
+	int			ret;
+
+	DEBUG2("including dictionary file %s/radius/%s", main_config.dictionary_dir, FR_DICTIONARY_FILE);
+	ret = fr_dict_protocol_afrom_file(NULL, &dict_radius, main_config.dictionary_dir, "radius");
+	if (ret < 0) {
+		ERROR("%s", fr_strerror());
+		return ret;
+	}
+
+	vendor_microsoft = fr_dict_vendor_attr_by_num(dict_radius, PW_VENDOR_SPECIFIC, VENDORPEC_MICROSOFT);
+	if (!vendor_microsoft) {
+		ERROR("Missing RADIUS Microsoft vendor");
+		return -1;
+	}
+
+	return 0;
+}
+
+static void mod_unload(void)
+{
+	talloc_decrease_ref_count(dict_radius);
+}
 
 /*
  *	The module name should be the only globally exported symbol.
@@ -533,6 +560,8 @@ rlm_eap_submodule_t rlm_eap_fast = {
 	.name		= "eap_fast",
 	.magic		= RLM_MODULE_INIT,
 
+	.load		= mod_load,
+	.unload		= mod_unload,
 	.inst_size	= sizeof(rlm_eap_fast_t),
 	.config		= submodule_config,
 	.instantiate	= mod_instantiate,	/* Create new submodule instance */

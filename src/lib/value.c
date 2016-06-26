@@ -987,7 +987,7 @@ int value_box_from_str(TALLOC_CTX *ctx, value_box_t *dst,
 		 *	attribute.
 		 */
 		if (dst_enumv && *p && !is_whitespace(p)) {
-			if ((dval = fr_dict_enum_by_name(NULL, dst_enumv, in)) == NULL) {
+			if ((dval = fr_dict_enum_by_name(dst_enumv, in)) == NULL) {
 				fr_strerror_printf("Unknown or invalid value \"%s\" for attribute %s",
 						   in, dst_enumv->name);
 				return -1;
@@ -1020,7 +1020,7 @@ int value_box_from_str(TALLOC_CTX *ctx, value_box_t *dst,
 		 *	attribute.
 		 */
 		if (dst_enumv && *p && !is_whitespace(p)) {
-			if ((dval = fr_dict_enum_by_name(NULL, dst_enumv, in)) == NULL) {
+			if ((dval = fr_dict_enum_by_name(dst_enumv, in)) == NULL) {
 				fr_strerror_printf("Unknown or invalid value \"%s\" for attribute %s",
 						   in, dst_enumv->name);
 				return -1;
@@ -1053,7 +1053,7 @@ int value_box_from_str(TALLOC_CTX *ctx, value_box_t *dst,
 		 *	attribute.
 		 */
 		if (dst_enumv && *p && !is_whitespace(p)) {
-			if ((dval = fr_dict_enum_by_name(NULL, dst_enumv, in)) == NULL) {
+			if ((dval = fr_dict_enum_by_name(dst_enumv, in)) == NULL) {
 				fr_strerror_printf("Unknown or invalid value \"%s\" for attribute %s",
 						   in, dst_enumv->name);
 				return -1;
@@ -1371,6 +1371,10 @@ int value_box_cast(TALLOC_CTX *ctx, value_box_t *dst,
 		goto fixed_length;
 	}
 
+	/*
+	 *	For integers, we allow the casting of a SMALL type to
+	 *	a larger type, but not vice-versa.
+	 */
 	if (dst_type == PW_TYPE_SHORT) {
 		switch (src->type) {
 		case PW_TYPE_BYTE:
@@ -1869,7 +1873,7 @@ char *value_box_asprint(TALLOC_CTX *ctx, value_box_t const *data, char quote)
 
 		value_box_cast(ctx, &tmp, PW_TYPE_INTEGER, NULL, data);
 
-		dv = fr_dict_enum_by_da(NULL, data->datum.enumv, tmp.datum.integer);
+		dv = fr_dict_enum_by_da(data->datum.enumv, tmp.datum.integer);
 		if (dv) return talloc_typed_strdup(ctx, dv->name);
 	}
 
@@ -2066,7 +2070,7 @@ size_t value_box_snprint(char *out, size_t outlen, value_box_t const *data, char
 
 		value_box_cast(NULL, &tmp, PW_TYPE_INTEGER, NULL, data);
 
-		dv = fr_dict_enum_by_da(NULL, data->datum.enumv, tmp.datum.integer);
+		dv = fr_dict_enum_by_da(data->datum.enumv, tmp.datum.integer);
 		if (dv) return strlcpy(out, dv->name, outlen);
 	}
 

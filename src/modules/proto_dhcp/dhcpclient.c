@@ -78,6 +78,8 @@ static bool reply_expected = true;
 
 static char const *dhcpclient_version = RADIUSD_VERSION_STRING_BUILD("dhcpclient");
 
+static fr_dict_t *dict_dhcp;
+
 /* structure to keep track of offered IP addresses */
 typedef struct dc_offer {
 	uint32_t server_addr;
@@ -647,12 +649,17 @@ int main(int argc, char **argv)
 	tv_timeout.tv_sec = timeout;
 	tv_timeout.tv_usec = ((timeout - (float) tv_timeout.tv_sec) * USEC);
 
-	if (fr_dict_from_file(NULL, &dict, dict_dir, FR_DICTIONARY_FILE, "radius") < 0) {
+	if (fr_dict_internal_afrom_file(autofree, &dict, dict_dir, FR_DICTIONARY_INTERNAL_DIR) < 0) {
 		fr_perror("dhcpclient");
 		exit(1);
 	}
 
-	if (fr_dict_read(dict, radius_dir, FR_DICTIONARY_FILE) == -1) {
+	if (fr_dict_protocol_afrom_file(autofree, &dict_dhcp, dict_dir, "dhcp") < 0) {
+		fr_perror("dhcpclient");
+		exit(1);
+	}
+
+	if (fr_dict_from_file(dict, radius_dir, FR_DICTIONARY_FILE) == -1) {
 		fr_perror("dhcpclient");
 		exit(1);
 	}
@@ -662,11 +669,9 @@ int main(int argc, char **argv)
 	 *	Ensure that dictionary.dhcp is loaded.
 	 */
 	da = fr_dict_attr_by_name(NULL, "DHCP-Message-Type");
-	if (!da) {
-		if (fr_dict_read(dict, dict_dir, "dictionary.dhcp") < 0) {
-			ERROR("Failed reading dictionary.dhcp");
-			exit(1);
-		}
+	if (da) {
+		ERROR("DHCP dictionary missing definition for DHCP-Message-Type");
+		exit(1);
 	}
 
 	/*

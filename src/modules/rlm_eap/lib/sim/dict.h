@@ -21,8 +21,10 @@
  * @copyright 2003-2016 The FreeRADIUS server project
  */
 #include <freeradius-devel/rad_assert.h>
-#include <freeradius-devel/eap.sim.h>
-#include <freeradius-devel/eap.aka.h>
+#include <freeradius-devel/protocol/eap/sim/rfc4187.h>
+#include <freeradius-devel/protocol/eap/sim/freeradius.h>
+#include <freeradius-devel/protocol/eap/aka/rfc4187.h>
+#include <freeradius-devel/protocol/eap/aka/freeradius.h>
 
 /*
  *	Sanity check on dictionaries...

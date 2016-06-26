@@ -73,6 +73,12 @@ static int rlm_example_cmp(UNUSED void *instance, REQUEST *request, UNUSED VALUE
 static int mod_instantiate(CONF_SECTION *conf, void *instance)
 {
 	rlm_example_t	*inst = instance;
+	fr_dict_t	*dict_radius = fr_dict_by_protocol_num(PROTOCOL_RADIUS);
+
+	if (!dict_radius) {
+		cf_log_err_cs(conf, "rlm_example requires the RADIUS dictionary");
+		return -1;
+	}
 
 	/*
 	 *	Do more work here
@@ -82,8 +88,12 @@ static int mod_instantiate(CONF_SECTION *conf, void *instance)
 		return -1;
 	}
 
-	paircompare_register_byname("Example-Paircmp", fr_dict_attr_by_num(NULL, 0, PW_USER_NAME), false,
-				    rlm_example_cmp, inst);
+	paircompare_register_by_name(fr_dict_internal,
+				     "Example-Paircmp",
+				     fr_dict_attr_by_num(dict_radius, 0, PW_USER_NAME),
+				     false,
+				     rlm_example_cmp,
+				     inst);
 
 	return 0;
 }

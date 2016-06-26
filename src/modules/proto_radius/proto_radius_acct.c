@@ -28,6 +28,8 @@
 #include <freeradius-devel/udp.h>
 #include <freeradius-devel/rad_assert.h>
 
+static fr_dict_t *dict_radius;
+
 static void acct_running(REQUEST *request, fr_state_action_t action)
 {
 	VALUE_PAIR *vp;
@@ -71,7 +73,7 @@ static void acct_running(REQUEST *request, fr_state_action_t action)
 
 		da = fr_dict_attr_by_num(NULL, 0, PW_PACKET_TYPE);
 		rad_assert(da != NULL);
-		dv = fr_dict_enum_by_da(NULL, da, request->packet->code);
+		dv = fr_dict_enum_by_da(da, request->packet->code);
 		if (!dv) {
 			REDEBUG("Failed to find value for &request:Packet-Type");
 			goto done;
@@ -140,7 +142,7 @@ static void acct_running(REQUEST *request, fr_state_action_t action)
 		if (!da) da = fr_dict_attr_by_num(NULL, 0, PW_PACKET_TYPE);
 		rad_assert(da != NULL);
 
-		dv = fr_dict_enum_by_da(NULL, da, request->reply->code);
+		dv = fr_dict_enum_by_da(da, request->reply->code);
 		unlang = NULL;
 		if (dv) {
 			unlang = cf_section_sub_find_name2(request->server_cs, "send", dv->name);
@@ -391,6 +393,24 @@ static int acct_socket_parse(CONF_SECTION *cs, rad_listen_t *this)
 	return 0;
 }
 
+static int mod_load(void)
+{
+	int ret;
+
+	DEBUG2("including dictionary file %s/radius/%s", main_config.dictionary_dir, FR_DICTIONARY_FILE);
+	ret = fr_dict_protocol_afrom_file(NULL, &dict_radius, main_config.dictionary_dir, "radius");
+	if (ret < 0) {
+		ERROR("%s", fr_strerror());
+		return ret;
+	}
+
+	return 0;
+}
+
+static void mod_unload(void)
+{
+	talloc_decrease_ref_count(dict_radius);
+}
 
 extern rad_protocol_t proto_radius_acct;
 rad_protocol_t proto_radius_acct = {
@@ -399,6 +419,8 @@ rad_protocol_t proto_radius_acct = {
 	.inst_size	= sizeof(listen_socket_t),
 	.transports	= TRANSPORT_UDP,
 	.tls		= false,
+	.load		= mod_load,
+	.unload		= mod_unload,
 	.bootstrap	= NULL,	/* don't do Acct-Type any more */
 	.compile	= acct_listen_compile,
 	.parse		= acct_socket_parse,
@@ -406,7 +428,7 @@ rad_protocol_t proto_radius_acct = {
 	.recv		= acct_socket_recv,
 	.send		= NULL,
 	.print		= common_socket_print,
-	.debug = common_packet_debug,
+	.debug		= common_packet_debug,
 	.encode		= NULL,
 	.decode		= NULL,
 };

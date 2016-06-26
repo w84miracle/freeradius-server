@@ -34,6 +34,9 @@ typedef struct rlm_soh_t {
 	bool dhcp;
 } rlm_soh_t;
 
+static fr_dict_t *dict_dhcp;
+static fr_dict_t *dict_radius;
+static fr_dict_attr_t const *vendor_microsoft;
 
 /*
  * Not sure how to make this useful yet...
@@ -208,6 +211,34 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authorize(UNUSED void *instance, UNUSED 
 	return RLM_MODULE_OK;
 }
 
+static int mod_load(void)
+{
+	if (fr_dict_protocol_afrom_file(NULL, &dict_dhcp, main_config.dictionary_dir, "dhcp") < 0) {
+		LERROR("rlm_soh - %s", fr_strerror());
+		return -1;
+	}
+
+	if (fr_dict_protocol_afrom_file(NULL, &dict_radius, main_config.dictionary_dir, "radius") < 0) {
+		LERROR("rlm_soh - %s", fr_strerror());
+		return -1;
+	}
+
+	vendor_microsoft = fr_dict_vendor_attr_by_num(dict_radius, PW_VENDOR_SPECIFIC, VENDORPEC_MICROSOFT);
+	if (!vendor_microsoft) {
+		LERROR("rlm_soh - %s", fr_strerror());
+		return -1;
+	}
+
+	return 0;
+}
+
+static void mod_unload(void)
+{
+	talloc_decrease_ref_count(dict_dhcp);
+
+	talloc_decrease_ref_count(dict_radius);
+}
+
 extern rad_module_t rlm_soh;
 rad_module_t rlm_soh = {
 	.magic		= RLM_MODULE_INIT,
@@ -215,6 +246,8 @@ rad_module_t rlm_soh = {
 	.type		= RLM_TYPE_THREAD_SAFE,
 	.inst_size	= sizeof(rlm_soh_t),
 	.config		= module_config,
+	.load		= mod_load,
+	.unload		= mod_unload,
 	.bootstrap	= mod_bootstrap,
 	.methods = {
 		[MOD_AUTHORIZE]		= mod_authorize,

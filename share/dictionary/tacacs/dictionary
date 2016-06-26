@@ -9,6 +9,6 @@
 PROTOCOL	TACACS	4
 BEGIN-PROTOCOL TACACS
 
-$INCLUDE dictionary.tacacs
+$INCLUDE dictionary.rfc-draft-dahm-opsawg-tacacs
 
 END-PROTOCOL TACACS

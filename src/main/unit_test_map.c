@@ -38,6 +38,8 @@ RCSID("$Id$")
 
 #include <freeradius-devel/log.h>
 
+main_config_t		main_config;				//!< Main server configuration.
+
 /* Linker hacks */
 char const *get_radius_dir(void)
 {
@@ -49,8 +51,6 @@ module_instance_t *module_find_with_method(UNUSED rlm_components_t *method,
 {
 	return NULL;
 }
-
-main_config_t		main_config;				//!< Main server configuration.
 
 void *module_thread_instance_find(UNUSED void *inst)
 {
@@ -138,6 +138,7 @@ int main(int argc, char *argv[])
 	char const		*radius_dir = RADDBDIR;
 	char const		*dict_dir = DICTDIR;
 	fr_dict_t		*dict = NULL;
+	fr_dict_t		*dict_radius = NULL;
 
 	TALLOC_CTX		*autofree = talloc_init("main");
 
@@ -177,13 +178,18 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	if (fr_dict_from_file(NULL, &dict, dict_dir, FR_DICTIONARY_FILE, "radius") < 0) {
-		fr_perror("unit_test_attribute");
+	if (fr_dict_internal_afrom_file(autofree, &dict, dict_dir, FR_DICTIONARY_INTERNAL_DIR) < 0) {
+		fr_perror("unit_test_map");
 		exit(1);
 	}
 
-	if (fr_dict_read(dict, radius_dir, FR_DICTIONARY_FILE) == -1) {
-		fr_perror("unit_test_attribute");
+	if (fr_dict_protocol_afrom_file(autofree, &dict_radius, dict_dir, "radius") < 0) {
+		fr_perror("unit_test_map");
+		exit(1);
+	}
+
+	if (fr_dict_from_file(dict, radius_dir, FR_DICTIONARY_FILE) == -1) {
+		fr_perror("unit_test_map");
 		exit(1);
 	}
 

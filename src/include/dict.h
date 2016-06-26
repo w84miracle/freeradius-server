@@ -165,14 +165,17 @@ int			fr_dict_vendor_add(fr_dict_t *dict, char const *name, unsigned int value);
 int			fr_dict_attr_add(fr_dict_t *dict, fr_dict_attr_t const *parent, char const *name, int attr,
 					 PW_TYPE type, fr_dict_attr_flags_t flags);
 
-int			fr_dict_enum_add(fr_dict_t *dict, char const *attr, char const *alias, int value);
+int			fr_dict_enum_add(fr_dict_attr_t const *da, char const *alias, int value);
 
 int			fr_dict_str_to_argv(char *str, char **argv, int max_argc);
 
-int			fr_dict_from_file(TALLOC_CTX *ctx, fr_dict_t **out,
-				     char const *dir, char const *fn, char const *name);
+int			fr_dict_internal_afrom_file(TALLOC_CTX *ctx, fr_dict_t **out,
+						    char const *dir, char const *internal_name);
 
-int			fr_dict_read(fr_dict_t *dict, char const *dir, char const *filename);
+int			fr_dict_protocol_afrom_file(TALLOC_CTX *ctx, fr_dict_t **out,
+						    char const *dir, char const *proto_name);
+
+int			fr_dict_from_file(fr_dict_t *dict, char const *dir, char const *filename);
 
 int			fr_dict_parse_str(fr_dict_t *dict, char *buf,
 					  fr_dict_attr_t const *parent, unsigned int vendor);
@@ -225,6 +228,8 @@ fr_dict_t		*fr_dict_by_protocol_name(char const *name);
 
 fr_dict_t		*fr_dict_by_protocol_num(unsigned int num);
 
+fr_dict_t		*fr_dict_by_da(fr_dict_attr_t const *da);
+
 fr_dict_t		*fr_dict_by_attr_name(fr_dict_attr_t const **found, char const *name);
 
 int			fr_dict_vendor_by_name(fr_dict_t *dict, char const *name);
@@ -247,11 +252,11 @@ fr_dict_attr_t const	*fr_dict_attr_child_by_da(fr_dict_attr_t const *parent, fr_
 
 fr_dict_attr_t const	*fr_dict_attr_child_by_num(fr_dict_attr_t const *parent, unsigned int attr);
 
-fr_dict_enum_t		*fr_dict_enum_by_da(fr_dict_t *dict, fr_dict_attr_t const *da, int64_t value);
+fr_dict_enum_t		*fr_dict_enum_by_da(fr_dict_attr_t const *da, int64_t value);
 
-char const		*fr_dict_enum_name_by_da(fr_dict_t *dict, fr_dict_attr_t const *da, int64_t value);
+char const		*fr_dict_enum_name_by_da(fr_dict_attr_t const *da, int64_t value);
 
-fr_dict_enum_t		*fr_dict_enum_by_name(fr_dict_t *dict, fr_dict_attr_t const *da, char const *val);
+fr_dict_enum_t		*fr_dict_enum_by_name(fr_dict_attr_t const *da, char const *val);
 
 /*
  *	Validation

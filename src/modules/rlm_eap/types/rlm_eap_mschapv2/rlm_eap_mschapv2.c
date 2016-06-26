@@ -29,6 +29,9 @@ RCSID("$Id$")
 
 #include <freeradius-devel/rad_assert.h>
 
+static fr_dict_t *dict_radius;
+static fr_dict_attr_t const *vendor_microsoft;
+
 typedef struct rlm_eap_mschapv2_t {
 	bool with_ntdomain_hack;
 	bool send_error;
@@ -754,8 +757,8 @@ static int mod_instantiate(UNUSED rlm_eap_config_t const *config, void *instance
 
 	if (!inst->identity) inst->identity = talloc_asprintf(inst, "freeradius-%s", RADIUSD_VERSION_STRING);
 
-	dv = fr_dict_enum_by_name(NULL, fr_dict_attr_by_num(NULL, 0, PW_AUTH_TYPE), "MS-CHAP");
-	if (!dv) dv = fr_dict_enum_by_name(NULL, fr_dict_attr_by_num(NULL, 0, PW_AUTH_TYPE), "MSCHAP");
+	dv = fr_dict_enum_by_name(fr_dict_attr_by_num(NULL, 0, PW_AUTH_TYPE), "MS-CHAP");
+	if (!dv) dv = fr_dict_enum_by_name(fr_dict_attr_by_num(NULL, 0, PW_AUTH_TYPE), "MSCHAP");
 	if (!dv) {
 		cf_log_err_cs(cs, "Failed to find 'Auth-Type MS-CHAP' section.  Cannot authenticate users.");
 		return -1;
@@ -763,6 +766,27 @@ static int mod_instantiate(UNUSED rlm_eap_config_t const *config, void *instance
 	inst->auth_type_mschap = dv->value;
 
 	return 0;
+}
+
+static int mod_load(void)
+{
+	if (fr_dict_protocol_afrom_file(NULL, &dict_radius, main_config.dictionary_dir, "radius") < 0) {
+		LERROR("rlm_eap_mschapv2 - %s", fr_strerror());
+		return -1;
+	}
+
+	vendor_microsoft = fr_dict_vendor_attr_by_num(dict_radius, PW_VENDOR_SPECIFIC, VENDORPEC_MICROSOFT);
+	if (!vendor_microsoft) {
+		LERROR("rlm_eap_mschapv2 - %s", fr_strerror());
+		return -1;
+	}
+
+	return 0;
+}
+
+static void mod_unload(void)
+{
+	talloc_decrease_ref_count(dict_radius);
 }
 
 /*
@@ -776,6 +800,8 @@ rlm_eap_submodule_t rlm_eap_mschapv2 = {
 
 	.inst_size	= sizeof(rlm_eap_mschapv2_t),
 	.config		= submodule_config,
+	.load		= mod_load,
+	.unload		= mod_unload,
 	.instantiate	= mod_instantiate,	/* Create new submodule instance */
 
 	.session_init	= mod_session_init,	/* Initialise a new EAP session */

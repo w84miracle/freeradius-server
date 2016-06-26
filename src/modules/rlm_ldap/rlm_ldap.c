@@ -1442,6 +1442,13 @@ static int mod_bootstrap(CONF_SECTION *conf, void *instance)
 	char		buffer[256];
 	char const	*group_attribute;
 
+	fr_dict_t	*dict_radius = fr_dict_by_protocol_num(PROTOCOL_RADIUS);
+
+	if (!dict_radius) {
+		cf_log_err_cs(conf, "rlm_ldap requires the RADIUS dictionary");
+		return -1;
+	}
+
 	inst->name = cf_section_name2(conf);
 	if (!inst->name) inst->name = cf_section_name1(conf);
 
@@ -1454,8 +1461,12 @@ static int mod_bootstrap(CONF_SECTION *conf, void *instance)
 		group_attribute = "LDAP-Group";
 	}
 
-	if (paircompare_register_byname(group_attribute, fr_dict_attr_by_num(NULL, 0, PW_USER_NAME),
-					false, rlm_ldap_groupcmp, inst) < 0) {
+	if (paircompare_register_by_name(fr_dict_internal,
+					 group_attribute,
+					 fr_dict_attr_by_num(dict_radius, 0, PW_USER_NAME),
+					 false,
+					 rlm_ldap_groupcmp,
+					 inst) < 0) {
 		ERROR("Error registering group comparison: %s", fr_strerror());
 		goto error;
 	}

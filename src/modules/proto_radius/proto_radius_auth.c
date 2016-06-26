@@ -35,6 +35,8 @@
 #define USEC (1000000)
 #endif
 
+static fr_dict_t *dict_radius;
+
 /*
  *	Make sure user/pass are clean and then create an attribute
  *	which contains the log message.
@@ -79,7 +81,7 @@ static void auth_message(char const *msg, REQUEST *request, int goodpass)
 			if (auth_type) {
 				snprintf(clean_password, sizeof(clean_password),
 					 "<via Auth-Type = %s>",
-					 fr_dict_enum_name_by_da(NULL, auth_type->da, auth_type->vp_integer));
+					 fr_dict_enum_name_by_da(auth_type->da, auth_type->vp_integer));
 			} else {
 				strcpy(clean_password, "<no User-Password attribute>");
 			}
@@ -342,7 +344,7 @@ static void auth_running(REQUEST *request, fr_state_action_t action)
 
 		da = fr_dict_attr_by_num(NULL, 0, PW_PACKET_TYPE);
 		rad_assert(da != NULL);
-		dv = fr_dict_enum_by_da(NULL, da, request->packet->code);
+		dv = fr_dict_enum_by_da(da, request->packet->code);
 		if (!dv) {
 			REDEBUG("Failed to find value for &request:Packet-Type");
 			request->reply->code = PW_CODE_ACCESS_REJECT;
@@ -426,7 +428,7 @@ static void auth_running(REQUEST *request, fr_state_action_t action)
 				continue;
 			}
 
-			RWDEBUG("Ignoring extra Auth-Type = %s", fr_dict_enum_name_by_da(NULL, auth_type->da, vp->vp_integer));
+			RWDEBUG("Ignoring extra Auth-Type = %s", fr_dict_enum_name_by_da(auth_type->da, vp->vp_integer));
 		}
 
 		/*
@@ -441,13 +443,13 @@ static void auth_running(REQUEST *request, fr_state_action_t action)
 		/*
 		 *	Handle hard-coded Accept and Reject.
 		 */
-		if (auth_type->vp_integer == PW_AUTH_TYPE_ACCEPT) {
+		if (auth_type->vp_integer == PW_AUTH_TYPE_VALUE_ACCEPT) {
 			RDEBUG2("Auth-Type = Accept, allowing user");
 			request->reply->code = PW_CODE_ACCESS_ACCEPT;
 			goto setup_send;
 		}
 
-		if (auth_type->vp_integer == PW_AUTH_TYPE_REJECT) {
+		if (auth_type->vp_integer == PW_AUTH_TYPE_VALUE_REJECT) {
 			RDEBUG2("Auth-Type = Reject, rejecting user");
 			request->reply->code = PW_CODE_ACCESS_REJECT;
 			goto setup_send;
@@ -457,7 +459,7 @@ static void auth_running(REQUEST *request, fr_state_action_t action)
 		 *	Find the appropriate Auth-Type by name.
 		 */
 		vp = auth_type;
-		dv = fr_dict_enum_by_da(NULL, vp->da, vp->vp_integer);
+		dv = fr_dict_enum_by_da(vp->da, vp->vp_integer);
 		if (!dv) {
 			REDEBUG2("Unknown Auth-Type %d found: rejecting the user.", vp->vp_integer);
 			request->reply->code = PW_CODE_ACCESS_REJECT;
@@ -628,7 +630,7 @@ static void auth_running(REQUEST *request, fr_state_action_t action)
 		if (!da) da = fr_dict_attr_by_num(NULL, 0, PW_PACKET_TYPE);
 		rad_assert(da != NULL);
 
-		dv = fr_dict_enum_by_da(NULL, da, request->reply->code);
+		dv = fr_dict_enum_by_da(da, request->reply->code);
 		unlang = NULL;
 		if (dv) {
 			unlang = cf_section_sub_find_name2(request->server_cs, "send", dv->name);
@@ -673,12 +675,12 @@ static void auth_running(REQUEST *request, fr_state_action_t action)
 				if (!da) da = fr_dict_attr_by_num(NULL, 0, PW_PACKET_TYPE);
 				rad_assert(da != NULL);
 
-				dv = fr_dict_enum_by_da(NULL, da, request->reply->code);
+				dv = fr_dict_enum_by_da(da, request->reply->code);
 				RWDEBUG("Failed running 'send %s', trying 'send Access-Reject'.", dv->name);
 
 				request->reply->code = PW_CODE_ACCESS_REJECT;
 
-				dv = fr_dict_enum_by_da(NULL, da, request->reply->code);
+				dv = fr_dict_enum_by_da(da, request->reply->code);
 				unlang = NULL;
 				if (!dv) goto send_reply;
 
@@ -719,10 +721,10 @@ static void auth_running(REQUEST *request, fr_state_action_t action)
 		if (!request->reply->code) {
 			vp = fr_pair_find_by_num(request->control, 0, PW_AUTH_TYPE, TAG_ANY);
 			if (vp) {
-				if (vp->vp_integer == PW_AUTH_TYPE_ACCEPT) {
+				if (vp->vp_integer == PW_AUTH_TYPE_VALUE_ACCEPT) {
 					request->reply->code = PW_CODE_ACCESS_ACCEPT;
 
-				} else if (vp->vp_integer == PW_AUTH_TYPE_REJECT) {
+				} else if (vp->vp_integer == PW_AUTH_TYPE_VALUE_REJECT) {
 					request->reply->code = PW_CODE_ACCESS_REJECT;
 				}
 			}
@@ -835,7 +837,7 @@ static void auth_running(REQUEST *request, fr_state_action_t action)
 
 				RDEBUG2("Delaying Access-Reject for %d.%06d seconds",
 					(int) delay.tv_sec, (int) delay.tv_usec);
-				
+
 				if (unlang_delay(request, &delay, auth_reject_delay) == 0) {
 					return;
 				}
@@ -1105,7 +1107,7 @@ static int auth_listen_bootstrap(CONF_SECTION *server_cs, UNUSED CONF_SECTION *l
 		 *	If the value already exists, don't
 		 *	create it again.
 		 */
-		dv = fr_dict_enum_by_name(NULL, da, name2);
+		dv = fr_dict_enum_by_name(da, name2);
 		if (dv) continue;
 
 		/*
@@ -1116,10 +1118,10 @@ static int auth_listen_bootstrap(CONF_SECTION *server_cs, UNUSED CONF_SECTION *l
 		 */
 		do {
 			value = (fr_rand() & 0x00ffffff) + 1;
-		} while (fr_dict_enum_by_da(NULL, da, value));
+		} while (fr_dict_enum_by_da(da, value));
 
 		cf_log_module(subcs, "Creating %s = %s", da->name, name2);
-		if (fr_dict_enum_add(NULL, da->name, name2, value) < 0) {
+		if (fr_dict_enum_add(da, name2, value) < 0) {
 			ERROR("%s", fr_strerror());
 			return -1;
 		}
@@ -1149,6 +1151,24 @@ static int auth_socket_parse(CONF_SECTION *cs, rad_listen_t *this)
 	return 0;
 }
 
+static int mod_load(void)
+{
+	int ret;
+
+	DEBUG2("including dictionary file %s/radius/%s", main_config.dictionary_dir, FR_DICTIONARY_FILE);
+	ret = fr_dict_protocol_afrom_file(NULL, &dict_radius, main_config.dictionary_dir, "radius");
+	if (ret < 0) {
+		ERROR("%s", fr_strerror());
+		return ret;
+	}
+
+	return 0;
+}
+
+static void mod_unload(void)
+{
+	talloc_decrease_ref_count(dict_radius);
+}
 
 extern rad_protocol_t proto_radius_auth;
 rad_protocol_t proto_radius_auth = {
@@ -1157,6 +1177,8 @@ rad_protocol_t proto_radius_auth = {
 	.inst_size	= sizeof(listen_socket_t),
 	.transports	= TRANSPORT_UDP,
 	.tls		= false,
+	.load		= mod_load,
+	.unload		= mod_unload,
 	.bootstrap	= auth_listen_bootstrap,
 	.compile	= auth_listen_compile,
 	.parse		= auth_socket_parse,

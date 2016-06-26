@@ -32,6 +32,8 @@ RCSIDH(vqp_h, "$Id$")
 extern "C" {
 #endif
 
+extern fr_dict_t *dict_vqp;
+
 RADIUS_PACKET *vqp_recv(TALLOC_CTX *ctx, int sockfd);
 int vqp_send(RADIUS_PACKET *packet);
 int vqp_decode(RADIUS_PACKET *packet);

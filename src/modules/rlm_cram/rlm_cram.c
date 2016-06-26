@@ -49,6 +49,9 @@ RCSID("$Id$")
 #define	SM_CHALLENGE	102
 #define	SM_RESPONSE     103
 
+static fr_dict_t		*dict_radius;
+static fr_dict_attr_t const	*vendor_sm;
+
 static void calc_apop_digest(uint8_t *buffer, uint8_t const *challenge,
 			     size_t challen, char const *password)
 {
@@ -194,11 +197,34 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authenticate(UNUSED void *instance, UNUS
 
 }
 
+static int mod_load(void)
+{
+	if (fr_dict_protocol_afrom_file(NULL, &dict_radius, main_config.dictionary_dir, "radius") < 0) {
+		LERROR("rlm_cram - %s", fr_strerror());
+		return -1;
+	}
+
+	vendor_sm = fr_dict_vendor_attr_by_num(dict_radius, PW_VENDOR_SPECIFIC, VENDORPEC_SM);
+	if (!vendor_sm) {
+		LERROR("rlm_cram - %s", fr_strerror());
+		return -1;
+	}
+
+	return 0;
+}
+
+static void mod_unload(void)
+{
+	talloc_decrease_ref_count(dict_radius);
+}
+
 extern rad_module_t rlm_cram;
 rad_module_t rlm_cram = {
 	.magic		= RLM_MODULE_INIT,
 	.name		= "cram",
 	.type		= RLM_TYPE_THREAD_SAFE,
+	.load		= mod_load,
+	.unload		= mod_unload,
 	.methods = {
 		[MOD_AUTHENTICATE]	= mod_authenticate
 	},

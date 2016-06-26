@@ -233,6 +233,8 @@ typedef struct CC_HINT(__packed__) tacacs_packet {
 	};
 } tacacs_packet_t;
 
+extern fr_dict_t *dict_tacacs;
+
 tacacs_type_t tacacs_type(RADIUS_PACKET const * const packet);
 char const * tacacs_lookup_packet_code(RADIUS_PACKET const * const packet);
 uint32_t tacacs_session_id(RADIUS_PACKET const * const packet);

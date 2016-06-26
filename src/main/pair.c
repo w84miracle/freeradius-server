@@ -339,17 +339,20 @@ static bool otherattr(fr_dict_attr_t const *attribute, fr_dict_attr_t const **fr
 
 /** Register a function as compare function
  *
- * @param name the attribute comparison to register
- * @param from the attribute we want to compare with. Normally this is the same as attribute.
- *	If null call the comparison function on every attributes in the request if first_only is
- *	false.
- * @param first_only will decide if we loop over the request attributes or stop on the first one.
- * @param func comparison function.
- * @param instance argument to comparison function.
+ * @param dict		to add the attribute to.
+ * @param name		the attribute comparison to register
+ * @param from		the attribute we want to compare with.
+ *			Normally this is the same as attribute. If null call the
+ *			comparison function on every attributes in the request if
+ *			first_only is false.
+ * @param first_only	will decide if we loop over the request attributes or stop on the first one.
+ * @param func		comparison function.
+ * @param instance	argument to comparison function.
  * @return 0
  */
-int paircompare_register_byname(char const *name, fr_dict_attr_t const *from,
-				bool first_only, RAD_COMPARE_FUNC func, void *instance)
+int paircompare_register_by_name(fr_dict_t *dict,
+				 char const *name, fr_dict_attr_t const *from,
+				 bool first_only, RAD_COMPARE_FUNC func, void *instance)
 {
 	fr_dict_attr_flags_t flags;
 	fr_dict_attr_t const *da;
@@ -357,19 +360,20 @@ int paircompare_register_byname(char const *name, fr_dict_attr_t const *from,
 	memset(&flags, 0, sizeof(flags));
 	flags.compare = 1;
 
-	da = fr_dict_attr_by_name(NULL, name);
+	da = fr_dict_attr_by_name(dict, name);
 	if (da) {
 		if (!da->flags.compare) {
 			fr_strerror_printf("Attribute '%s' already exists", name);
 			return -1;
 		}
 	} else if (from) {
-		if (fr_dict_attr_add(NULL, fr_dict_root(fr_dict_internal), name, -1, from->type, flags) < 0) {
+		if (fr_dict_attr_add(dict, fr_dict_root(dict),
+				     name, -1, from->type, flags) < 0) {
 			fr_strerror_printf("Failed creating attribute '%s': %s", name, fr_strerror());
 			return -1;
 		}
 
-		da = fr_dict_attr_by_name(NULL, name);
+		da = fr_dict_attr_by_name(dict, name);
 		if (!da) {
 			fr_strerror_printf("Failed finding attribute '%s'", name);
 			return -1;

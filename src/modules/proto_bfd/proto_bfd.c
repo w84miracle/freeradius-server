@@ -227,6 +227,8 @@ typedef struct bfd_socket_t {
 	rbtree_t	*session_tree;
 } bfd_socket_t;
 
+static fr_dict_t *bfd_dict;
+
 static int bfd_start_packets(bfd_state_t *session);
 static int bfd_start_control(bfd_state_t *session);
 static int bfd_stop_control(bfd_state_t *session);
@@ -1839,6 +1841,15 @@ static int bfd_socket_compile(CONF_SECTION *server_cs, UNUSED CONF_SECTION *list
 	return 0;
 }
 
+static int bfd_load(void)
+{
+	return fr_dict_protocol_afrom_file(NULL, &bfd_dict, main_config.dictionary_dir, "bfd");
+}
+
+static void bfd_unload(void)
+{
+	talloc_free(bfd_dict);
+}
 
 extern rad_protocol_t proto_bfd;
 rad_protocol_t proto_bfd = {
@@ -1847,6 +1858,9 @@ rad_protocol_t proto_bfd = {
 	.inst_size	= sizeof(bfd_socket_t),
 	.transports	= TRANSPORT_UDP,
 	.tls		= false,
+
+	.load		= bfd_load,
+	.unload		= bfd_unload,
 	.bootstrap	= bfd_socket_bootstrap,
 	.compile	= bfd_socket_compile,
 	.parse		= bfd_socket_parse,

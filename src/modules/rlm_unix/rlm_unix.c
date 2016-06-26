@@ -130,7 +130,12 @@ static int mod_bootstrap(CONF_SECTION *conf, void *instance)
 {
 	rlm_unix_t		*inst = instance;
 	fr_dict_attr_t const	*group_da, *user_name_da;
+	fr_dict_t		*dict_radius = fr_dict_by_protocol_num(PROTOCOL_RADIUS);
 
+	if (!dict_radius) {
+		cf_log_err_cs(conf, "rlm_unix requires the RADIUS dictionary");
+		return -1;
+	}
 
 	inst->name = cf_section_name2(conf);
 	if (!inst->name) inst->name = cf_section_name1(conf);
@@ -141,7 +146,7 @@ static int mod_bootstrap(CONF_SECTION *conf, void *instance)
 		return -1;
 	}
 
-	user_name_da = fr_dict_attr_by_num(NULL, 0, PW_USER_NAME);
+	user_name_da = fr_dict_attr_by_num(dict_radius, 0, PW_USER_NAME);
 	if (!user_name_da) {
 		ERROR("&User-Name attribute not found in dictionary");
 		return -1;
@@ -164,11 +169,12 @@ static int mod_bootstrap(CONF_SECTION *conf, void *instance)
 	}
 #endif
 
-	if (paircompare_register_byname("Unix-Group",
-				        user_name_da,
-				        false,
-					groupcmp,
-					inst) < 0) {
+	if (paircompare_register_by_name(fr_dict_internal,
+					 "Unix-Group",
+					 user_name_da,
+					 false,
+					 groupcmp,
+					 inst) < 0) {
 		ERROR("Failed registering Unix-Group: %s", fr_strerror());
 		return -1;
 	}

@@ -33,6 +33,8 @@ RCSID("$Id$")
 
 #define PW_DHCP_PARAMETER_REQUEST_LIST 55
 
+fr_dict_t *dict_dhcp;
+
 /*
  *	Define a structure for our module configuration.
  *
@@ -187,7 +189,7 @@ static int mod_bootstrap(UNUSED CONF_SECTION *conf, void *instance)
 			}
 
 			DEBUG3("Adding %s value %i %s", da->name, i, value->name);
-			if (fr_dict_enum_add(NULL, da->name, value->name, i) < 0) {
+			if (fr_dict_enum_add(da, value->name, i) < 0) {
 				DEBUG3("Failed adding value: %s", fr_strerror());
 			}
 		}
@@ -200,13 +202,19 @@ static int dhcp_load(void)
 {
 	int ret;
 
-	ret = fr_dict_read(main_config.dict, main_config.dictionary_dir, "dictionary.dhcp");
-	if (dhcp_init() < 0) {
+	DEBUG2("including dictionary file %s/dhcp/%s", main_config.dictionary_dir, FR_DICTIONARY_FILE);
+	ret = fr_dict_protocol_afrom_file(NULL, &dict_dhcp, main_config.dictionary_dir, "dhcp");
+	if (ret < 0) {
 		ERROR("%s", fr_strerror());
-		return -1;
+		return ret;
 	}
 
-	return ret;
+	return 0;
+}
+
+static void dhcp_unload(void)
+{
+	talloc_decrease_ref_count(dict_dhcp);
 }
 
 /*
@@ -225,5 +233,6 @@ rad_module_t rlm_dhcp = {
 	.inst_size	= sizeof(rlm_dhcp_t),
 
 	.load		= dhcp_load,
+	.unload		= dhcp_unload,
 	.bootstrap	= mod_bootstrap,
 };

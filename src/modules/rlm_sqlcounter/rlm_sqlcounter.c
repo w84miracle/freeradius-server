@@ -592,8 +592,11 @@ static int mod_bootstrap(CONF_SECTION *conf, void *instance)
 			      inst->paircmp_attr->tmpl_da->name);
 		return -1;
 	}
-	if (paircompare_register_byname(inst->paircmp_attr->tmpl_da->name, NULL, true,
-					counter_cmp, inst) < 0) {
+	if (paircompare_register_by_name(fr_dict_internal,
+					 inst->paircmp_attr->tmpl_da->name,
+					 NULL,
+					 true,
+					 counter_cmp, inst) < 0) {
 		cf_log_err_cs(conf, "Failed registering comparison function for counter attribute %s: %s",
 			      inst->paircmp_attr->tmpl_da->name, fr_strerror());
 		return -1;

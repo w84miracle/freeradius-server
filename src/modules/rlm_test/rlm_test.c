@@ -211,10 +211,20 @@ static int mod_thread_detach(void *thread)
  */
 static int mod_instantiate(UNUSED CONF_SECTION *conf, void *instance)
 {
-	rlm_test_t *inst = instance;
+	rlm_test_t	*inst = instance;
+	fr_dict_t	*dict_radius = fr_dict_by_protocol_num(PROTOCOL_RADIUS);
 
-	paircompare_register_byname("test-Paircmp", fr_dict_attr_by_num(NULL, 0, PW_USER_NAME), false,
-				    rlm_test_cmp, inst);
+	if (!dict_radius) {
+		cf_log_err_cs(conf, "rlm_test requires the RADIUS dictionary");
+		return -1;
+	}
+
+	paircompare_register_by_name(fr_dict_internal,
+				     "test-Paircmp",
+				     fr_dict_attr_by_num(dict_radius, 0, PW_USER_NAME),
+				     false,
+				     rlm_test_cmp,
+				     inst);
 
 	/*
 	 *	Log some messages

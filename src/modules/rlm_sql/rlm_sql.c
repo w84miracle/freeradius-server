@@ -1050,6 +1050,13 @@ static int mod_bootstrap(CONF_SECTION *conf, void *instance)
 	CONF_SECTION	*driver_cs;
 	char const	*name;
 
+	fr_dict_t	*dict_radius = fr_dict_by_protocol_num(PROTOCOL_RADIUS);
+
+	if (!dict_radius) {
+		cf_log_err_cs(conf, "rlm_sql requires the RADIUS dictionary");
+		return -1;
+	}
+
 	/*
 	 *	Hack...
 	 */
@@ -1133,8 +1140,12 @@ static int mod_bootstrap(CONF_SECTION *conf, void *instance)
 		/*
 		 *	Checks if attribute already exists.
 		 */
-		if (paircompare_register_byname(group_attribute, fr_dict_attr_by_num(NULL, 0, PW_USER_NAME),
-						false, sql_groupcmp, inst) < 0) {
+		if (paircompare_register_by_name(fr_dict_internal,
+						 group_attribute,
+						 fr_dict_attr_by_num(dict_radius, 0, PW_USER_NAME),
+						 false,
+						 sql_groupcmp,
+						 inst) < 0) {
 			ERROR("Failed registering group comparison: %s", fr_strerror());
 			goto error;
 		}

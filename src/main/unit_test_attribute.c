@@ -89,6 +89,10 @@ static RADIUS_PACKET my_packet = {
 
 static char *my_secret = NULL;
 
+static fr_dict_t *dict_internal = NULL;
+static fr_dict_t *dict_radius = NULL;
+static fr_dict_t *dict_dhcp = NULL;
+
 /*
  *	End of hacks for xlat
  *
@@ -578,7 +582,7 @@ static void parse_xlat(char const *input, char *output, size_t outlen)
 	talloc_free(fmt);
 }
 
-static void process_file(fr_dict_t *dict, const char *root_dir, char const *filename)
+static void process_file(const char *root_dir, char const *filename)
 {
 	int		lineno;
 	size_t		i, outlen;
@@ -854,7 +858,7 @@ static void process_file(fr_dict_t *dict, const char *root_dir, char const *file
 				while (option_p < end) {
 					vp = NULL;
 					my_len = fr_dhcp_decode_option(NULL, &cursor,
-								       fr_dict_root(fr_dict_internal), option_p,
+								       fr_dict_root(dict_dhcp), option_p,
 								       end - option_p, NULL);
 					if (my_len <= 0) {
 						fr_pair_list_free(&head);
@@ -980,7 +984,7 @@ static void process_file(fr_dict_t *dict, const char *root_dir, char const *file
 		if (strncmp(p, "dictionary ", 11) == 0) {
 			p += 11;
 
-			if (fr_dict_parse_str(dict, p, fr_dict_root(dict), 0) < 0) {
+			if (fr_dict_parse_str(dict_internal, p, fr_dict_root(dict_internal), 0) < 0) {
 				strlcpy(output, fr_strerror(), sizeof(output));
 				continue;
 			}
@@ -998,10 +1002,10 @@ static void process_file(fr_dict_t *dict, const char *root_dir, char const *file
 			q = strrchr(directory, '/');
 			if (q) {
 				*q = '\0';
-				process_file(dict, directory, p);
+				process_file(directory, p);
 				*q = '/';
 			} else {
-				process_file(dict, NULL, p);
+				process_file(NULL, p);
 			}
 			continue;
 		}
@@ -1045,8 +1049,6 @@ int main(int argc, char *argv[])
 	char const	*dict_dir = DICTDIR;
 	int		*inst = &c;
 
-	fr_dict_t	*dict = NULL;
-
 	TALLOC_CTX	*autofree = talloc_init("main");
 
 #ifndef NDEBUG
@@ -1088,12 +1090,24 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (fr_dict_from_file(NULL, &dict, dict_dir, FR_DICTIONARY_FILE, "radius") < 0) {
+	if (fr_dict_internal_afrom_file(autofree, &dict_internal, NULL, NULL) < 0) {
 		fr_perror("unit_test_attribute");
 		return 1;
 	}
 
-	if (fr_dict_read(dict, radius_dir, FR_DICTIONARY_FILE) == -1) {
+	if (fr_dict_protocol_afrom_file(autofree, &dict_radius, dict_dir, "radius") < 0) {
+		fr_perror("unit_test_attribute");
+		return 1;
+	}
+
+	if (fr_dict_protocol_afrom_file(autofree, &dict_dhcp, dict_dir, "dhcp") < 0) {
+		fr_perror("unit_test_attribute");
+		return 1;
+	}
+
+	fr_dict_dump(dict_internal);
+
+	if (fr_dict_from_file(dict_internal, radius_dir, FR_DICTIONARY_FILE) == -1) {
 		fr_perror("unit_test_attribute");
 		return 1;
 	}
@@ -1105,20 +1119,20 @@ int main(int argc, char *argv[])
 
 	my_secret = talloc_strdup(NULL, "testing123");
 
+
 	if (argc < 2) {
-		process_file(dict, NULL, "-");
+		process_file(NULL, "-");
 
 	} else {
-		process_file(dict, NULL, argv[1]);
-	}
-
-	if (report) {
-		talloc_free(dict);
-		talloc_free(my_secret);
-		fr_log_talloc_report(NULL);
+		process_file(NULL, argv[1]);
 	}
 
 	talloc_free(autofree);
+
+	if (report) {
+		talloc_free(my_secret);
+		fr_log_talloc_report(NULL);
+	}
 
 	return 0;
 }

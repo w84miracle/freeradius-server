@@ -400,9 +400,12 @@ int main(int argc, char **argv)
 	FILE		*inputfp = stdin;
 	char const	*server = NULL;
 	fr_dict_t	*dict = NULL;
+	fr_dict_t	*dict_radius = NULL;
 
 	char const	*radius_dir = RADIUS_DIR;
 	char const	*dict_dir = DICTDIR;
+
+	TALLOC_CTX	*autofree = talloc_init("main");
 
 	char *commands[MAX_COMMANDS];
 	int num_commands = -1;
@@ -529,16 +532,21 @@ int main(int argc, char **argv)
 
 		snprintf(buffer, sizeof(buffer), "%s/%s.conf", radius_dir, name);
 
-		/*
-		 *	Need to read in the dictionaries, else we may get
-		 *	validation errors when we try and parse the config.
-		 */
-		if (fr_dict_from_file(NULL, &dict, dict_dir, FR_DICTIONARY_FILE, "radius") < 0) {
+		if (fr_dict_internal_afrom_file(autofree, &dict, dict_dir, FR_DICTIONARY_INTERNAL_DIR) < 0) {
 			fr_perror("radmin");
 			exit(64);
 		}
 
-		if (fr_dict_read(dict, radius_dir, FR_DICTIONARY_FILE) == -1) {
+		/*
+		 *	Need to read in the dictionaries, else we may get
+		 *	validation errors when we try and parse the config.
+		 */
+		if (fr_dict_protocol_afrom_file(autofree, &dict_radius, dict_dir, FR_DICTIONARY_FILE) < 0) {
+			fr_perror("radmin");
+			exit(64);
+		}
+
+		if (fr_dict_from_file(dict, radius_dir, FR_DICTIONARY_FILE) == -1) {
 			fr_perror("radmin");
 			exit(64);
 		}
@@ -869,7 +877,7 @@ int main(int argc, char **argv)
 
 	if (radmin_log.dst == L_DST_FILES) close(radmin_log.fd);
 
-	talloc_free(dict);
+	talloc_free(autofree);
 
 	return exit_status;
 }

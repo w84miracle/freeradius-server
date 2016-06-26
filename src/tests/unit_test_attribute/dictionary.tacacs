@@ -1,0 +1,6 @@
+#
+#  Additional TACACS options used by the TACACS unit tests
+#
+BEGIN-PROTOCOL TACACS
+
+END-PROTOCOL TACACS

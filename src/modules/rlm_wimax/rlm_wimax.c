@@ -46,6 +46,10 @@ static const CONF_PARSER module_config[] = {
 	CONF_PARSER_TERMINATOR
 };
 
+fr_dict_t *dict_radius;
+fr_dict_attr_t const *vendor_microsoft;
+fr_dict_attr_t const *vendor_wimax;
+
 /*
  *	Find the named user in this modules database.  Create the set
  *	of attribute-value pairs to check and reply with for this user
@@ -438,6 +442,32 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 	return RLM_MODULE_UPDATED;
 }
 
+static int mod_load(void)
+{
+	if (fr_dict_protocol_afrom_file(NULL, &dict_radius, main_config.dictionary_dir, "radius") < 0) {
+		LERROR("rlm_wimax - %s", fr_strerror());
+		return -1;
+	}
+
+	vendor_microsoft = fr_dict_vendor_attr_by_num(dict_radius, PW_VENDOR_SPECIFIC, VENDORPEC_MICROSOFT);
+	if (!vendor_microsoft) {
+		LERROR("rlm_wimax - %s", fr_strerror());
+		return -1;
+	}
+
+	vendor_wimax = fr_dict_vendor_attr_by_num(dict_radius, PW_VENDOR_SPECIFIC, VENDORPEC_WIMAX);
+	if (!vendor_wimax) {
+		LERROR("rlm_wimax - %s", fr_strerror());
+		return -1;
+	}
+
+	return 0;
+}
+
+static void mod_unload(void)
+{
+	talloc_decrease_ref_count(dict_radius);
+}
 
 /*
  *	The module name should be the only globally exported symbol.
@@ -455,6 +485,8 @@ rad_module_t rlm_wimax = {
 	.type		= RLM_TYPE_THREAD_SAFE,
 	.inst_size	= sizeof(rlm_wimax_t),
 	.config		= module_config,
+	.load		= mod_load,
+	.unload		= mod_unload,
 	.methods = {
 		[MOD_AUTHORIZE]		= mod_authorize,
 		[MOD_PREACCT]		= mod_preacct,

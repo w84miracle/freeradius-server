@@ -1067,6 +1067,13 @@ static int _fr_snmp_init(fr_snmp_map_t map[])
  */
 int fr_snmp_init(void)
 {
+	fr_dict_t *dict = NULL;
+
+	DEBUG2("including dictionary file %s/snmp/%s", main_config.dictionary_dir, FR_DICTIONARY_FILE);
+	if (fr_dict_protocol_afrom_file(NULL, &dict, main_config.dictionary_dir, "snmp") < 0) {
+		ERROR("%s", fr_strerror());
+		return -1;
+	}
 
 #define CACHE_DA(_v, _n) \
 do { \
