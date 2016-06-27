@@ -202,7 +202,7 @@ int eap_basic_compose(RADIUS_PACKET *packet, eap_packet_t *reply)
 	 */
 	vp = fr_pair_find_by_num(packet->vps, 0, PW_MESSAGE_AUTHENTICATOR, TAG_ANY);
 	if (!vp) {
-		vp = fr_pair_afrom_num(packet, 0, PW_MESSAGE_AUTHENTICATOR);
+		vp = fr_pair_afrom_child_num(packet, fr_dict_root(fr_dict_radius), PW_MESSAGE_AUTHENTICATOR);
 		vp->vp_length = AUTH_VECTOR_LEN;
 		vp->vp_octets = talloc_zero_array(vp, uint8_t, vp->vp_length);
 
@@ -261,7 +261,7 @@ VALUE_PAIR *eap_packet2vp(RADIUS_PACKET *packet, eap_packet_raw_t const *eap)
 		size = total;
 		if (size > 253) size = 253;
 
-		vp = fr_pair_afrom_num(packet, 0, PW_EAP_MESSAGE);
+		vp = fr_pair_afrom_child_num(packet, fr_dict_root(fr_dict_radius), PW_EAP_MESSAGE);
 		if (!vp) {
 			fr_pair_list_free(&head);
 			return NULL;

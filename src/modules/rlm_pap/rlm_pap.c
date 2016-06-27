@@ -253,7 +253,7 @@ redo:
 		 *	memcpy.  BUT it might be a string (or used as one), so
 		 *	we ensure that there's a trailing zero, too.
 		 */
-		new = fr_pair_afrom_num(request, 0, attr);
+		new = fr_pair_afrom_child_num(request, fr_dict_root(fr_dict_internal), attr);
 		if (new->da->type == PW_TYPE_OCTETS) {
 			fr_pair_value_memcpy(new, (uint8_t const *) q + 1, (len - hlen) + 1);
 			new->vp_length = (len - hlen);	/* lie about the length */
@@ -305,7 +305,7 @@ redo:
 	}
 
 unknown_header:
-	new = fr_pair_afrom_num(request, 0, PW_CLEARTEXT_PASSWORD);
+	new = fr_pair_afrom_child_num(request, fr_dict_root(fr_dict_radius), PW_CLEARTEXT_PASSWORD);
 	fr_pair_value_strcpy(new, vp->vp_strvalue);
 
 	return new;

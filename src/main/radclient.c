@@ -151,7 +151,7 @@ static int mschapv1_encode(RADIUS_PACKET *packet, VALUE_PAIR **request,
 	fr_pair_delete_by_num(&packet->vps, VENDORPEC_MICROSOFT, PW_MSCHAP_CHALLENGE, TAG_ANY);
 	fr_pair_delete_by_num(&packet->vps, VENDORPEC_MICROSOFT, PW_MSCHAP_RESPONSE, TAG_ANY);
 
-	challenge = fr_pair_afrom_num(packet, VENDORPEC_MICROSOFT, PW_MSCHAP_CHALLENGE);
+	challenge = fr_pair_afrom_child_num(packet, vendor_microsoft, PW_MSCHAP_CHALLENGE);
 	if (!challenge) {
 		return 0;
 	}
@@ -163,7 +163,7 @@ static int mschapv1_encode(RADIUS_PACKET *packet, VALUE_PAIR **request,
 		p[i] = fr_rand();
 	}
 
-	reply = fr_pair_afrom_num(packet, VENDORPEC_MICROSOFT, PW_MSCHAP_RESPONSE);
+	reply = fr_pair_afrom_child_num(packet, vendor_microsoft, PW_MSCHAP_RESPONSE);
 	if (!reply) {
 		return 0;
 	}

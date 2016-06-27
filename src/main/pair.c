@@ -710,7 +710,7 @@ VALUE_PAIR *radius_pair_create(TALLOC_CTX *ctx, VALUE_PAIR **vps,
 {
 	VALUE_PAIR *vp;
 
-	vp = fr_pair_afrom_num(ctx, vendor, attribute);
+	vp = fr_pair_afrom_child_num(ctx, vendor, attribute);
 	if (!vp) {
 		ERROR("No memory!");
 		rad_assert("No memory" == NULL);

@@ -141,7 +141,7 @@ static void state_add(REQUEST *request, RADIUS_PACKET *packet)
 	session_id = tacacs_session_id(request->packet);
 	memcpy(&buf[sizeof(buf) - sizeof(session_id)], &session_id, sizeof(session_id));
 
-	vp = fr_pair_afrom_num(packet, 0, PW_STATE);
+	vp = fr_pair_afrom_child_num(packet, fr_dict_root(fr_dict_radius), PW_STATE);
 	rad_assert(vp != NULL);
 	fr_pair_value_memcpy(vp, (uint8_t const *)buf, sizeof(buf));
 	fr_pair_add(&packet->vps, vp);

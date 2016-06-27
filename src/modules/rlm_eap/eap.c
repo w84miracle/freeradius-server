@@ -180,7 +180,7 @@ rlm_rcode_t eap_compose(eap_session_t *eap_session)
 	 */
 	vp = fr_pair_find_by_num(request->reply->vps, 0, PW_MESSAGE_AUTHENTICATOR, TAG_ANY);
 	if (!vp) {
-		vp = fr_pair_afrom_num(request->reply, 0, PW_MESSAGE_AUTHENTICATOR);
+		vp = fr_pair_afrom_child_num(request->reply, fr_dict_root(fr_dict_radius), PW_MESSAGE_AUTHENTICATOR);
 		fr_pair_value_memsteal(vp, talloc_zero_array(vp, uint8_t, AUTH_VECTOR_LEN));
 		fr_pair_add(&(request->reply->vps), vp);
 	}
@@ -305,7 +305,7 @@ int eap_start(rlm_eap_t const *inst, REQUEST *request)
 		}
 
 		RDEBUG2("Got EAP_START message");
-		vp = fr_pair_afrom_num(request->reply, 0, PW_EAP_MESSAGE);
+		vp = fr_pair_afrom_child_num(request->reply, fr_dict_root(fr_dict_radius), PW_EAP_MESSAGE);
 		if (!vp) return RLM_MODULE_FAIL;
 		fr_pair_add(&request->reply->vps, vp);
 
@@ -351,7 +351,7 @@ int eap_start(rlm_eap_t const *inst, REQUEST *request)
 	 *	Create an EAP-Type containing the EAP-type
 	 *	from the packet.
 	 */
-	vp = fr_pair_afrom_num(request->packet, 0, PW_EAP_TYPE);
+	vp = fr_pair_afrom_child_num(request->packet, fr_dict_root(fr_dict_internal), PW_EAP_TYPE);
 	if (vp) {
 		vp->vp_integer = eap_msg->vp_octets[4];
 		fr_pair_add(&(request->packet->vps), vp);

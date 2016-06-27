@@ -532,7 +532,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_process(void *instance, void *thread, RE
 		}
 	}
 
-	vp = fr_pair_afrom_num(packet, 0, PW_PROXY_STATE);
+	vp = fr_pair_afrom_child_num(packet, fr_dict_root(fr_dict_radius), PW_PROXY_STATE);
 	rad_assert(vp != NULL);
 	fr_pair_value_snprintf(vp, "%08x", fr_rand());
 	fr_pair_add(&packet->vps, vp);

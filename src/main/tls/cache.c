@@ -68,7 +68,7 @@ static int tls_cache_attrs(REQUEST *request,
 	fr_pair_delete_by_num(&request->packet->vps, 0, PW_TLS_SESSION_ID, TAG_ANY);
 
 	RDEBUG2("Setting TLS cache control attributes");
-	vp = fr_pair_afrom_num(request->packet, 0, PW_TLS_SESSION_ID);
+	vp = fr_pair_afrom_child_num(request->packet, fr_dict_root(fr_dict_internal), PW_TLS_SESSION_ID);
 	if (!vp) return -1;
 
 	fr_pair_value_memcpy(vp, key, key_len);
@@ -77,7 +77,7 @@ static int tls_cache_attrs(REQUEST *request,
 	rdebug_pair(L_DBG_LVL_2, request, vp, NULL);
 	REXDENT();
 
-	vp = fr_pair_afrom_num(request, 0, PW_TLS_CACHE_ACTION);
+	vp = fr_pair_afrom_child_num(request, fr_dict_root(fr_dict_internal), PW_TLS_CACHE_ACTION);
 	if (!vp) return -1;
 
 	vp->vp_integer = action;
@@ -111,7 +111,7 @@ int tls_cache_process(REQUEST *request, char const *virtual_server, int autz_typ
 	/*
 	 *	Indicate what action we're performing
 	 */
-	vp = fr_pair_afrom_num(request, 0, PW_TLS_CACHE_ACTION);
+	vp = fr_pair_afrom_child_num(request, fr_dict_root(fr_dict_internal), PW_TLS_CACHE_ACTION);
 	if (!vp) return -1;
 
 	vp->vp_integer = autz_type;
@@ -275,7 +275,7 @@ int tls_cache_write(REQUEST *request, tls_session_t *tls_session)
 	/*
 	 *	Put the SSL data into an attribute.
 	 */
-	vp = fr_pair_afrom_num(request->state_ctx, 0, PW_TLS_SESSION_DATA);
+	vp = fr_pair_afrom_child_num(request->state_ctx, fr_dict_root(fr_dict_internal), PW_TLS_SESSION_DATA);
 	if (!vp) {
 		REDEBUG("%s", fr_strerror());
 		return -1;

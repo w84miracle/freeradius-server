@@ -157,7 +157,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 
 					RDEBUG("SoH adding NAP marker to DHCP reply");
 					/* client probe; send "NAP" in the reply */
-					vp = fr_pair_afrom_num(request->reply, DHCP_MAGIC_VENDOR, 43);
+					vp = fr_pair_afrom_child_num(request->reply, fr_dict_root(dict_dhcp), 43);
 					p = talloc_array(vp, uint8_t, 5);
 					p[0] = 220;
 					p[1] = 3;

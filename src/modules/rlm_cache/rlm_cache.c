@@ -157,7 +157,8 @@ static rlm_rcode_t cache_merge(rlm_cache_t const *inst, REQUEST *request, rlm_ca
 		rad_assert(request->packet != NULL);
 		vp = fr_pair_find_by_num(request->packet->vps, 0, PW_CACHE_ENTRY_HITS, TAG_ANY);
 		if (!vp) {
-			vp = fr_pair_afrom_num(request->packet, 0, PW_CACHE_ENTRY_HITS);
+			vp = fr_pair_afrom_child_num(request->packet, fr_dict_root(fr_dict_internal),
+						     PW_CACHE_ENTRY_HITS);
 			rad_assert(vp != NULL);
 			fr_pair_add(&request->packet->vps, vp);
 		}

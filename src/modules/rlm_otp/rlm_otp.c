@@ -214,7 +214,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authorize(void *instance, UNUSED void *t
 		len = otp_gen_state(gen_state, challenge, inst->challenge_len,
 				    0, now, inst->hmac_key);
 
-		vp = fr_pair_afrom_num(request->reply, 0, PW_STATE);
+		vp = fr_pair_afrom_child_num(request->reply, fr_dict_root(fr_dict_internal), PW_STATE);
 		if (!vp) {
 			return RLM_MODULE_FAIL;
 		}
@@ -236,7 +236,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authorize(void *instance, UNUSED void *t
 		 *	First add the internal OTP challenge attribute to
 		 *	the reply list.
 		 */
-		vp = fr_pair_afrom_num(request->reply, 0, PW_OTP_CHALLENGE);
+		vp = fr_pair_afrom_child_num(request->reply, fr_dict_root(fr_dict_internal), PW_OTP_CHALLENGE);
 		if (!vp) {
 			return RLM_MODULE_FAIL;
 		}
@@ -256,7 +256,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authorize(void *instance, UNUSED void *t
 			return RLM_MODULE_FAIL;
 		}
 
-		vp = fr_pair_afrom_num(request->reply, 0, PW_REPLY_MESSAGE);
+		vp = fr_pair_afrom_child_num(request->reply, fr_dict_root(fr_dict_radius), PW_REPLY_MESSAGE);
 		if (!vp) {
 			talloc_free(expanded);
 			return RLM_MODULE_FAIL;

@@ -119,51 +119,6 @@ VALUE_PAIR *fr_pair_afrom_da(TALLOC_CTX *ctx, fr_dict_attr_t const *da)
  * Which type of #fr_dict_attr_t the #VALUE_PAIR was created with can be determined by
  * checking @verbatim vp->da->flags.is_unknown @endverbatim.
  *
- * @param[in] ctx for allocated memory, usually a pointer to a #RADIUS_PACKET.
- * @param[in] attr number.
- * @param[in] vendor number.
- * @return
- *	- A new #VALUE_PAIR.
- *	- NULL on error.
- */
-VALUE_PAIR *fr_pair_afrom_num(TALLOC_CTX *ctx, unsigned int vendor, unsigned int attr)
-{
-	fr_dict_attr_t const *da;
-
-	da = fr_dict_attr_by_num(fr_dict_internal, vendor, attr);
-	if (!da) {
-		VALUE_PAIR *vp;
-
-		vp = fr_pair_alloc(ctx);
-		if (!vp) return NULL;
-
-		/*
-		 *	Ensure that the DA is parented by the VP.
-		 */
-		da = fr_dict_unknown_afrom_fields(ctx, fr_dict_root(fr_dict_internal), vendor, attr);
-		if (!da) {
-			talloc_free(vp);
-			return NULL;
-		}
-
-		vp->da = da;
-		return vp;
-	}
-
-	return fr_pair_afrom_da(ctx, da);
-}
-
-/** Create a new valuepair
- *
- * If attr and vendor match a dictionary entry then a VP with that #fr_dict_attr_t
- * will be returned.
- *
- * If attr or vendor are uknown will call dict_attruknown to create a dynamic
- * #fr_dict_attr_t of #PW_TYPE_OCTETS.
- *
- * Which type of #fr_dict_attr_t the #VALUE_PAIR was created with can be determined by
- * checking @verbatim vp->da->flags.is_unknown @endverbatim.
- *
  * @param[in] ctx	for allocated memory, usually a pointer to a #RADIUS_PACKET.
  * @param[in] parent	of the attribute being allocated (usually a dictionary or vendor).
  * @param[in] attr	number.
@@ -868,7 +823,7 @@ int fr_pair_update_by_num(TALLOC_CTX *ctx, VALUE_PAIR **list,
 		return 0;
 	}
 
-	vp = fr_pair_afrom_num(ctx, vendor, attr);
+	vp = fr_pair_afrom_child_num(ctx, vendor, attr);
 	if (!vp) return -1;
 
 	vp->tag = tag;

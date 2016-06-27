@@ -737,7 +737,7 @@ static int radsnmp_send_recv(radsnmp_conf_t *conf, int fd)
 		 *	Add message authenticator or the stats
 		 *	request will be rejected.
 		 */
-		vp = fr_pair_afrom_num(request, 0, PW_MESSAGE_AUTHENTICATOR);
+		vp = fr_pair_afrom_child_num(request, fr_dict_root(conf->dict_radius), PW_MESSAGE_AUTHENTICATOR);
 		if (!vp) {
 			ERROR("Failed allocating Message-Authenticator attribute");
 			return EXIT_FAILURE;

@@ -85,7 +85,7 @@ static int eap_sim_send_state(eap_session_t *eap_session)
 	words[1] = htons(EAP_SIM_VERSION);
 	words[2] = 0;
 
-	newvp = fr_pair_afrom_child_num(packet, dict_sim_root, PW_EAP_SIM_VERSION_LIST);
+	newvp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_sim), PW_EAP_SIM_VERSION_LIST);
 	fr_pair_value_memcpy(newvp, (uint8_t const *) words, sizeof(words));
 
 	fr_pair_add(vps, newvp);
@@ -100,7 +100,7 @@ static int eap_sim_send_state(eap_session_t *eap_session)
 	memcpy(eap_sim_session->keys.gsm.version_list, words + 1, eap_sim_session->keys.gsm.version_list_len);
 
 	/* the ANY_ID attribute. We do not support re-auth or pseudonym */
-	MEM(newvp = fr_pair_afrom_child_num(packet, dict_sim_root, PW_EAP_SIM_FULLAUTH_ID_REQ));
+	MEM(newvp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_sim), PW_EAP_SIM_FULLAUTH_ID_REQ));
 	MEM(p = talloc_array(newvp, uint8_t, 2));
 	p[0] = 0;
 	p[1] = 1;
@@ -108,7 +108,7 @@ static int eap_sim_send_state(eap_session_t *eap_session)
 	fr_pair_add(vps, newvp);
 
 	/* the SUBTYPE, set to start. */
-	newvp = fr_pair_afrom_child_num(packet, dict_sim_root, PW_EAP_SIM_SUBTYPE);
+	newvp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_sim), PW_EAP_SIM_SUBTYPE);
 	newvp->vp_integer = EAP_SIM_START;
 	fr_pair_replace(vps, newvp);
 
@@ -160,7 +160,7 @@ static int eap_sim_send_challenge(eap_session_t *eap_session)
 	/*
 	 *	Okay, we got the challenges! Put them into an attribute.
 	 */
-	MEM(vp = fr_pair_afrom_child_num(packet, dict_sim_root, PW_EAP_SIM_RAND));
+	MEM(vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_sim), PW_EAP_SIM_RAND));
 	MEM(p = rand = talloc_array(vp, uint8_t, 2 + (SIM_VECTOR_GSM_RAND_SIZE * 3)));
 	memset(p, 0, 2); /* clear reserved bytes */
 	p += 2;
@@ -212,18 +212,18 @@ static int eap_sim_send_challenge(eap_session_t *eap_session)
 	 *	Need to include an AT_MAC attribute so that it will get
 	 *	calculated.
 	 */
-	vp = fr_pair_afrom_child_num(packet, dict_sim_root, PW_EAP_SIM_MAC);
+	vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_sim), PW_EAP_SIM_MAC);
 	fr_pair_value_memcpy(vp, hmac_zero, sizeof(hmac_zero));
 	fr_pair_replace(to_client, vp);
 
-	vp = fr_pair_afrom_child_num(packet, dict_sim_root, PW_EAP_SIM_KEY);
+	vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_sim), PW_EAP_SIM_KEY);
 	fr_pair_value_memcpy(vp, eap_sim_session->keys.k_aut, 16);
 	fr_pair_replace(to_client, vp);
 
 	/*
 	 *	Set subtype to challenge.
 	 */
-	vp = fr_pair_afrom_child_num(packet, dict_sim_root, PW_EAP_SIM_SUBTYPE);
+	vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_sim), PW_EAP_SIM_SUBTYPE);
 	vp->vp_integer = EAP_SIM_CHALLENGE;
 	fr_pair_replace(to_client, vp);
 

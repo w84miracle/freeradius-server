@@ -313,7 +313,7 @@ VALUE_PAIR *eap_chbind_packet2vp(REQUEST *request, chbind_packet_t *packet)
 		return NULL;
 	}
 
-	vp = fr_pair_afrom_num(request->packet, VENDORPEC_UKERNA, PW_UKERNA_CHBIND);
+	vp = fr_pair_afrom_child_num(request->packet, vendor, PW_UKERNA_CHBIND);
 	if (!vp) return NULL;
 
 	fr_pair_value_memcpy(vp, (uint8_t *) packet, talloc_array_length((uint8_t *)packet));

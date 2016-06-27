@@ -649,7 +649,8 @@ open_file:
 			data->timestamp = atoi(value);
 			data->timestamp_offset = data->last_offset;
 
-			vp = fr_pair_afrom_num(data, 0, PW_PACKET_ORIGINAL_TIMESTAMP);
+			vp = fr_pair_afrom_child_num(data, fr_dict_root(fr_dict_internal),
+						     PW_PACKET_ORIGINAL_TIMESTAMP);
 			if (vp) {
 				vp->vp_date = (uint32_t) data->timestamp;
 				vp->type = VT_DATA;
@@ -827,7 +828,7 @@ open_file:
 		 */
 		vp = fr_pair_find_by_num(packet->vps, 0, PW_ACCT_DELAY_TIME, TAG_ANY);
 		if (!vp) {
-			vp = fr_pair_afrom_num(packet, 0, PW_ACCT_DELAY_TIME);
+			vp = fr_pair_afrom_child_num(packet, fr_dict_root(fr_dict_radius), PW_ACCT_DELAY_TIME);
 			rad_assert(vp != NULL);
 			fr_pair_add(&packet->vps, vp);
 		}
@@ -841,7 +842,7 @@ open_file:
 	 */
 	vp = fr_pair_find_by_num(packet->vps, 0, PW_PACKET_TRANSMIT_COUNTER, TAG_ANY);
 	if (!vp) {
-		vp = fr_pair_afrom_num(packet, 0, PW_PACKET_TRANSMIT_COUNTER);
+		vp = fr_pair_afrom_child_num(packet, fr_dict_root(fr_dict_internal), PW_PACKET_TRANSMIT_COUNTER);
 		rad_assert(vp != NULL);
 		fr_pair_add(&packet->vps, vp);
 	}

@@ -505,7 +505,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authenticate(void *instance, UNUSED void
 		/* reply with Access-challenge message code (11) */
 
 		/* Generate Prompt attribute */
-		vp = fr_pair_afrom_num(request->reply, 0, PW_PROMPT);
+		vp = fr_pair_afrom_child_num(request->reply, fr_dict_root(fr_dict_radius), PW_PROMPT);
 
 		rad_assert(vp != NULL);
 		vp->vp_integer = 0; /* no echo */

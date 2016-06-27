@@ -265,7 +265,7 @@ static VALUE_PAIR *eap_peap_inner_to_pairs(UNUSED REQUEST *request, RADIUS_PACKE
 
 	if (data_len > 65535) return NULL; /* paranoia */
 
-	vp = fr_pair_afrom_num(packet, 0, PW_EAP_MESSAGE);
+	vp = fr_pair_afrom_child_num(packet, fr_dict_root(fr_dict_radius), PW_EAP_MESSAGE);
 	if (!vp) {
 		return NULL;
 	}
@@ -287,7 +287,7 @@ static VALUE_PAIR *eap_peap_inner_to_pairs(UNUSED REQUEST *request, RADIUS_PACKE
 	fr_pair_cursor_init(&cursor, &head);
 	fr_pair_cursor_append(&cursor, vp);
 	while (total < data_len) {
-		vp = fr_pair_afrom_num(packet, 0, PW_EAP_MESSAGE);
+		vp = fr_pair_afrom_child_num(packet, fr_dict_root(fr_dict_radius), PW_EAP_MESSAGE);
 		if (!vp) {
 			fr_pair_list_free(&head);
 			return NULL;
@@ -815,7 +815,7 @@ rlm_rcode_t eap_peap_process(eap_session_t *eap_session, tls_session_t *tls_sess
 
 		t->status = PEAP_STATUS_PHASE2;
 
-		vp = fr_pair_afrom_num(fake->packet, 0, PW_EAP_MESSAGE);
+		vp = fr_pair_afrom_child_num(fake->packet, fr_dict_root(fr_dict_radius), PW_EAP_MESSAGE);
 
 		q = talloc_array(vp, uint8_t, len);
 		q[0] = PW_EAP_RESPONSE;

@@ -253,7 +253,7 @@ int vqp_decode(RADIUS_PACKET *packet)
 	if (packet->data_len < VQP_HDR_LEN) return -1;
 
 	fr_pair_cursor_init(&cursor, &packet->vps);
-	vp = fr_pair_afrom_num(packet, 0, PW_VQP_PACKET_TYPE);
+	vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_vqp), PW_VQP_PACKET_TYPE);
 	if (!vp) {
 		fr_strerror_printf("No memory");
 		return -1;
@@ -263,7 +263,7 @@ int vqp_decode(RADIUS_PACKET *packet)
 	debug_pair(vp);
 	fr_pair_cursor_append(&cursor, vp);
 
-	vp = fr_pair_afrom_num(packet, 0, PW_VQP_ERROR_CODE);
+	vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_vqp), PW_VQP_ERROR_CODE);
 	if (!vp) {
 		fr_strerror_printf("No memory");
 		return -1;
@@ -273,7 +273,7 @@ int vqp_decode(RADIUS_PACKET *packet)
 	debug_pair(vp);
 	fr_pair_cursor_append(&cursor, vp);
 
-	vp = fr_pair_afrom_num(packet, 0, PW_VQP_SEQUENCE_NUMBER);
+	vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_vqp), PW_VQP_SEQUENCE_NUMBER);
 	if (!vp) {
 		fr_strerror_printf("No memory");
 		return -1;
@@ -300,7 +300,7 @@ int vqp_decode(RADIUS_PACKET *packet)
 		 *	Hack to get the dictionaries to work correctly.
 		 */
 		attr |= 0x2000;
-		vp = fr_pair_afrom_num(packet, 0, attr);
+		vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_vqp), attr);
 		if (!vp) {
 			fr_pair_list_free(&packet->vps);
 

@@ -438,7 +438,7 @@ static fr_state_entry_t *state_entry_create(fr_state_tree_t *state, REQUEST *req
 		 */
 		entry->state_comp.server_id = main_config.state_server_id;
 
-		vp = fr_pair_afrom_num(packet, 0, PW_STATE);
+		vp = fr_pair_afrom_child_num(packet, fr_dict_root(fr_dict_radius), PW_STATE);
 		fr_pair_value_memcpy(vp, entry->state, sizeof(entry->state));
 		fr_pair_add(&packet->vps, vp);
 	}
