@@ -399,7 +399,8 @@ static rlm_rcode_t CC_HINT(nonnull) mod_accounting(void *instance, UNUSED void *
 	/*
 	 *	Which type is this.
 	 */
-	if ((vp = fr_pair_find_by_num(request->packet->vps, 0, PW_ACCT_STATUS_TYPE, TAG_ANY)) == NULL) {
+	if ((vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+					    PW_ACCT_STATUS_TYPE, TAG_ANY)) == NULL) {
 		RDEBUG("no Accounting-Status-Type attribute in request");
 		return RLM_MODULE_NOOP;
 	}
@@ -416,7 +417,8 @@ static rlm_rcode_t CC_HINT(nonnull) mod_accounting(void *instance, UNUSED void *
 	 *	We're only interested in accounting messages
 	 *	with a username in it.
 	 */
-	if (fr_pair_find_by_num(request->packet->vps, 0, PW_USER_NAME, TAG_ANY) == NULL)
+	if (fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+				      PW_USER_NAME, TAG_ANY) == NULL)
 		return RLM_MODULE_NOOP;
 
 	t = request->packet->timestamp.tv_sec;

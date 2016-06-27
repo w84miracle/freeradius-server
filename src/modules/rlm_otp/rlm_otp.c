@@ -135,7 +135,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authorize(void *instance, UNUSED void *t
 		VALUE_PAIR *vp;
 
 		auth_type_found = 0;
-		vp = fr_pair_find_by_num(request->control, 0, PW_AUTH_TYPE, TAG_ANY);
+		vp = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal), PW_AUTH_TYPE, TAG_ANY);
 		if (vp) {
 			auth_type_found = 1;
 			if (strcmp(vp->vp_strvalue, inst->name)) {
@@ -145,7 +145,8 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authorize(void *instance, UNUSED void *t
 	}
 
 	/* The State attribute will be present if this is a response. */
-	if (fr_pair_find_by_num(request->packet->vps, 0, PW_STATE, TAG_ANY) != NULL) {
+	if (fr_pair_find_by_child_num(request->packet->vps,
+				      fr_dict_root(fr_dict_internal), PW_STATE, TAG_ANY) != NULL) {
 		DEBUG("autz: Found response to Access-Challenge");
 
 		return RLM_MODULE_OK;
@@ -320,7 +321,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authenticate(void *instance, UNUSED void
 	/*
 	 *	Retrieve the challenge (from State attribute).
 	 */
-	vp = fr_pair_find_by_num(request->packet->vps, 0, PW_STATE, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius), PW_STATE, TAG_ANY);
 	if (vp) {
 		char	gen_state[OTP_MAX_RADSTATE_LEN]; //!< State as hexits
 		uint8_t	bin_state[OTP_MAX_RADSTATE_LEN];

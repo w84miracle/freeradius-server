@@ -370,10 +370,12 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, void *thread, 
 	bool			we_wait = false;
 	VALUE_PAIR		*vp, *tmp;
 
-	vp = fr_pair_find_by_num(request->reply->vps, 0, PW_EXEC_PROGRAM, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(fr_dict_internal),
+				       PW_EXEC_PROGRAM, TAG_ANY);
 	if (vp) {
 		we_wait = false;
-	} else if ((vp = fr_pair_find_by_num(request->reply->vps, 0, PW_EXEC_PROGRAM_WAIT, TAG_ANY)) != NULL) {
+	} else if ((vp = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(fr_dict_internal),
+						   PW_EXEC_PROGRAM_WAIT, TAG_ANY)) != NULL) {
 		we_wait = true;
 	}
 	if (!vp) {
@@ -433,10 +435,12 @@ static rlm_rcode_t CC_HINT(nonnull) mod_accounting(void *instance, void *thread,
 		return mod_exec_dispatch(instance, thread, request);
 	}
 
-	vp = fr_pair_find_by_num(request->reply->vps, 0, PW_EXEC_PROGRAM, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(fr_dict_internal),
+				       PW_EXEC_PROGRAM, TAG_ANY);
 	if (vp) {
 		we_wait = true;
-	} else if ((vp = fr_pair_find_by_num(request->reply->vps, 0, PW_EXEC_PROGRAM_WAIT, TAG_ANY)) != NULL) {
+	} else if ((vp = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(fr_dict_internal),
+						   PW_EXEC_PROGRAM_WAIT, TAG_ANY)) != NULL) {
 		we_wait = false;
 	}
 	if (!vp) {

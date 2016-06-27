@@ -389,7 +389,7 @@ int vqp_encode(RADIUS_PACKET *packet, RADIUS_PACKET *original)
 
 	code = packet->code;
 	if (!code) {
-		vp = fr_pair_find_by_num(packet->vps, 0, PW_VQP_PACKET_TYPE, TAG_ANY);
+		vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict_vqp), PW_VQP_PACKET_TYPE, TAG_ANY);
 		if (!vp) {
 			fr_strerror_printf("Failed to find VQP-Packet-Type in response packet");
 			return -1;
@@ -404,7 +404,7 @@ int vqp_encode(RADIUS_PACKET *packet, RADIUS_PACKET *original)
 
 	length = VQP_HDR_LEN;
 
-	vp = fr_pair_find_by_num(packet->vps, 0, PW_VQP_ERROR_CODE, TAG_ANY);
+	vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict_vqp), PW_VQP_ERROR_CODE, TAG_ANY);
 	if (vp) {
 		packet->data = talloc_array(packet, uint8_t, length);
 		if (!packet->data) {
@@ -437,7 +437,8 @@ int vqp_encode(RADIUS_PACKET *packet, RADIUS_PACKET *original)
 	for (i = 0; i < VQP_MAX_ATTRIBUTES; i++) {
 		if (!contents[code][i]) break;
 
-		vps[i] = fr_pair_find_by_num(packet->vps, 0, contents[code][i] | 0x2000, TAG_ANY);
+		vps[i] = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict_vqp),
+						   contents[code][i] | 0x2000, TAG_ANY);
 
 		/*
 		 *	FIXME: Print the name...

@@ -297,11 +297,16 @@ static rlm_rcode_t CC_HINT(nonnull(1,2)) attr_filter_common(void const *instance
 	packet->vps = output;
 
 	if (request->packet->code == PW_CODE_ACCESS_REQUEST) {
-		request->username = fr_pair_find_by_num(request->packet->vps, 0, PW_STRIPPED_USER_NAME, TAG_ANY);
+		request->username = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_internal),
+							      PW_STRIPPED_USER_NAME, TAG_ANY);
 		if (!request->username) {
-			request->username = fr_pair_find_by_num(request->packet->vps, 0, PW_USER_NAME, TAG_ANY);
+			request->username = fr_pair_find_by_child_num(request->packet->vps,
+								      fr_dict_root(fr_dict_radius),
+								      PW_USER_NAME, TAG_ANY);
 		}
-		request->password = fr_pair_find_by_num(request->packet->vps, 0, PW_USER_PASSWORD, TAG_ANY);
+		request->password = fr_pair_find_by_child_num(request->packet->vps,
+							      fr_dict_root(fr_dict_radius),
+							      PW_USER_PASSWORD, TAG_ANY);
 	}
 
 	return RLM_MODULE_UPDATED;

@@ -885,7 +885,8 @@ rlm_rcode_t eap_peap_process(eap_session_t *eap_session, tls_session_t *tls_sess
 	switch (fake->reply->code) {
 	case 0:			/* No reply code, must be proxied... */
 #ifdef WITH_PROXY
-		vp = fr_pair_find_by_num(fake->control, 0, PW_PROXY_TO_REALM, TAG_ANY);
+		vp = fr_pair_find_by_child_num(fake->control, fr_dict_root(fr_dict_internal),
+					       PW_PROXY_TO_REALM, TAG_ANY);
 
 		if (vp) {
 			eap_tunnel_data_t *tunnel;

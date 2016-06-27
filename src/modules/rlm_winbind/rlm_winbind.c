@@ -449,7 +449,8 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authorize(UNUSED void *instance, UNUSED 
 		return RLM_MODULE_NOOP;
 	}
 
-	if (fr_pair_find_by_num(request->control, 0, PW_AUTH_TYPE, TAG_ANY) != NULL) {
+	if (fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+				      PW_AUTH_TYPE, TAG_ANY) != NULL) {
 		RWDEBUG2("Auth-type already set, not setting to winbind");
 		return RLM_MODULE_NOOP;
 	}

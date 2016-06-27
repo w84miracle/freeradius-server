@@ -71,7 +71,7 @@ static void coa_running(REQUEST *request, fr_state_action_t action)
 		request->server_cs = request->listener->server_cs;
 		request->component = "radius";
 
-		da = fr_dict_attr_child_by_num(fr_dict_root(dict_radius), PW_PACKET_TYPE);
+		da = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), PW_PACKET_TYPE);
 		rad_assert(da != NULL);
 		dv = fr_dict_enum_by_da(da, request->packet->code);
 		if (!dv) {
@@ -125,7 +125,8 @@ static void coa_running(REQUEST *request, fr_state_action_t action)
 		/*
 		 *	Allow for over-ride of reply code.
 		 */
-		vp = fr_pair_find_by_num(request->reply->vps, 0, PW_PACKET_TYPE, TAG_ANY);
+		vp = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(fr_dict_internal),
+					       PW_PACKET_TYPE, TAG_ANY);
 		if (vp) {
 			if (vp->vp_integer == 256) {
 				request->reply->code = 0;
@@ -134,7 +135,7 @@ static void coa_running(REQUEST *request, fr_state_action_t action)
 			}
 		}
 
-		if (!da) da = fr_dict_attr_child_by_num(fr_dict_root(dict_radius), PW_PACKET_TYPE);
+		if (!da) da = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), PW_PACKET_TYPE);
 		rad_assert(da != NULL);
 
 		dv = fr_dict_enum_by_da(da, request->reply->code);
@@ -186,7 +187,7 @@ static void coa_running(REQUEST *request, fr_state_action_t action)
 			 *	the NAK section.
 			 */
 			if (request->reply->code == request->packet->code + 1) {
-				if (!da) da = fr_dict_attr_child_by_num(fr_dict_root(dict_radius), PW_PACKET_TYPE);
+				if (!da) da = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), PW_PACKET_TYPE);
 				rad_assert(da != NULL);
 
 				dv = fr_dict_enum_by_da(da, request->reply->code);

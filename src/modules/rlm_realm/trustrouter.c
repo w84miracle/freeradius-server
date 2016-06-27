@@ -347,8 +347,16 @@ REALM *tr_query_realm(REQUEST *request, char const *realm,
 	gss_ctx_id_t		gssctx;
 	struct resp_opaque	cookie;
 
+	fr_dict_attr_t const	*vendor;
+
 	rad_assert(trust_router);
 	rad_assert(realm);
+
+	vendor = fr_dict_vendor_attr_by_num(fr_dict_root(fr_dict_radius), PW_VENDOR_SPECIFIC, VENDORPEC_UKERNA);
+	if (!vendor) {
+		RERROR("%s", fr_strerror());
+		return NULL;
+	}
 
 	/* clear the cookie structure */
 	memset(&cookie, 0, sizeof(cookie));
@@ -357,7 +365,7 @@ REALM *tr_query_realm(REQUEST *request, char const *realm,
 	if (!trust_router) trust_router = "none";
 
 	/* See if the request overrides the community*/
-	vp = fr_pair_find_by_num(request->packet->vps, VENDORPEC_UKERNA, PW_UKERNA_TR_COI, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->packet->vps, vendor, PW_UKERNA_TR_COI, TAG_ANY);
 	if (vp) {
 		community = vp->vp_strvalue;
 	} else if (community) {

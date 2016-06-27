@@ -130,7 +130,8 @@ static void acct_running(REQUEST *request, fr_state_action_t action)
 		/*
 		 *	Allow for over-ride of reply code.
 		 */
-		vp = fr_pair_find_by_num(request->reply->vps, 0, PW_PACKET_TYPE, TAG_ANY);
+		vp = fr_pair_find_by_child_num(request->reply->vps,
+					       fr_dict_root(fr_dict_internal), PW_PACKET_TYPE, TAG_ANY);
 		if (vp) {
 			if (vp->vp_integer == 256) {
 				request->reply->code = 0;

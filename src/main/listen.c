@@ -2041,7 +2041,8 @@ static int do_proxy(REQUEST *request)
 		return 0;
 	}
 
-	vp = fr_pair_find_by_num(request->control, 0, PW_HOME_SERVER_POOL, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+				       PW_HOME_SERVER_POOL, TAG_ANY);
 
 	if (vp) {
 		if (!home_pool_byname(vp->vp_strvalue, HOME_TYPE_COA)) {
@@ -2056,8 +2057,10 @@ static int do_proxy(REQUEST *request)
 	/*
 	 *	We have a destination IP address.  It will (later) proxied.
 	 */
-	vp = fr_pair_find_by_num(request->control, 0, PW_PACKET_DST_IP_ADDRESS, TAG_ANY);
-	if (!vp) vp = fr_pair_find_by_num(request->control, 0, PW_PACKET_DST_IPV6_ADDRESS, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+				       PW_PACKET_DST_IP_ADDRESS, TAG_ANY);
+	if (!vp) vp = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+						PW_PACKET_DST_IPV6_ADDRESS, TAG_ANY);
 
 	if (!vp) return 0;
 
@@ -2104,10 +2107,12 @@ rlm_rcode_t rad_coa_recv(REQUEST *request)
 		 *	with Service-Type = Authorize-Only, it MUST
 		 *	have a State attribute in it.
 		 */
-		vp = fr_pair_find_by_num(request->packet->vps, 0, PW_SERVICE_TYPE, TAG_ANY);
+		vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+					       PW_SERVICE_TYPE, TAG_ANY);
 		if (request->packet->code == PW_CODE_COA_REQUEST) {
 			if (vp && (vp->vp_integer == PW_AUTHORIZE_ONLY)) {
-				vp = fr_pair_find_by_num(request->packet->vps, 0, PW_STATE, TAG_ANY);
+				vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+							       PW_STATE, TAG_ANY);
 				if (!vp || (vp->vp_length == 0)) {
 					REDEBUG("CoA-Request with Service-Type = Authorize-Only MUST "
 						"contain a State attribute");

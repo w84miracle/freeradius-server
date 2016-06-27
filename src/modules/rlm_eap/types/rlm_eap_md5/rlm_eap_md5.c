@@ -103,7 +103,8 @@ static rlm_rcode_t mod_process(UNUSED void *arg, eap_session_t *eap_session)
 	 */
 	rad_assert(eap_session->request != NULL);
 
-	password = fr_pair_find_by_num(eap_session->request->control, 0, PW_CLEARTEXT_PASSWORD, TAG_ANY);
+	password = fr_pair_find_by_child_num(eap_session->request->control,
+					     fr_dict_root(fr_dict_internal), PW_CLEARTEXT_PASSWORD, TAG_ANY);
 	if (!password) {
 		REDEBUG2("Cleartext-Password is required for EAP-MD5 authentication");
 		return RLM_MODULE_REJECT;

@@ -293,7 +293,8 @@ static rlm_rcode_t mod_process(void *instance, eap_session_t *eap_session)
 		fr_pair_value_bstrncpy(fake->username, session->peer_id, session->peer_id_len);
 		fr_pair_add(&fake->packet->vps, fake->username);
 
-		if ((vp = fr_pair_find_by_num(request->control, 0, PW_VIRTUAL_SERVER, TAG_ANY)) != NULL) {
+		if ((vp = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+						    PW_VIRTUAL_SERVER, TAG_ANY)) != NULL) {
 			fake->server = vp->vp_strvalue;
 		} else if (inst->virtual_server) {
 			fake->server = inst->virtual_server;
@@ -321,9 +322,9 @@ static rlm_rcode_t mod_process(void *instance, eap_session_t *eap_session)
 		RDEBUG2("Got tunneled reply code %d", fake->reply->code);
 		rdebug_pair_list(L_DBG_LVL_2, request, fake->reply->vps, NULL);
 
-		pw = fr_pair_find_by_num(fake->control, 0, PW_CLEARTEXT_PASSWORD, TAG_ANY);
-		if (!pw) {
-			REDEBUG("Failed to find password for %s to do pwd authentication", session->peer_id);
+		if ((pw = fr_pair_find_by_child_num(fake->control, fr_dict_root(fr_dict_internal),
+						    PW_CLEARTEXT_PASSWORD, TAG_ANY)) == NULL) {
+			DEBUG2("Failed to find password for %s to do pwd authentication", session->peer_id);
 			talloc_free(fake);
 			return RLM_MODULE_REJECT;
 		}
@@ -502,7 +503,8 @@ static rlm_rcode_t mod_session_init(void *instance, eap_session_t *eap_session)
 	 *	The admin can dynamically change the MTU.
 	 */
 	session->mtu = inst->fragment_size;
-	vp = fr_pair_find_by_num(eap_session->request->packet->vps, 0, PW_FRAMED_MTU, TAG_ANY);
+	vp = fr_pair_find_by_child_num(eap_session->request->packet->vps,
+				       fr_dict_root(fr_dict_radius), PW_FRAMED_MTU, TAG_ANY);
 
 	/*
 	 *	session->mtu is *our* MTU.  We need to subtract off the EAP

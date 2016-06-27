@@ -2388,8 +2388,10 @@ void home_server_update_request(home_server_t *home, REQUEST *request)
 		 *	different.
 		 */
 		if ((request->packet->code == PW_CODE_ACCESS_REQUEST) &&
-		    fr_pair_find_by_num(request->proxy->packet->vps, 0, PW_CHAP_PASSWORD, TAG_ANY) &&
-		    fr_pair_find_by_num(request->proxy->packet->vps, 0, PW_CHAP_CHALLENGE, TAG_ANY) == NULL) {
+		    fr_pair_find_by_child_num(request->proxy->packet->vps, fr_dict_root(fr_dict_radius),
+		    			      PW_CHAP_PASSWORD, TAG_ANY) &&
+		    fr_pair_find_by_child_num(request->proxy->packet->vps, fr_dict_root(fr_dict_radius),
+		    			      PW_CHAP_CHALLENGE, TAG_ANY) == NULL) {
 			vp = radius_pair_create(request->proxy->packet, &request->proxy->packet->vps, PW_CHAP_CHALLENGE, 0);
 			fr_pair_value_memcpy(vp, request->packet->vector, sizeof(request->packet->vector));
 		}
@@ -2399,7 +2401,8 @@ void home_server_update_request(home_server_t *home, REQUEST *request)
 		 *	unless one already exists.
 		 */
 		if ((request->packet->code == PW_CODE_ACCESS_REQUEST) &&
-		    !fr_pair_find_by_num(request->proxy->packet->vps, 0, PW_MESSAGE_AUTHENTICATOR, TAG_ANY)) {
+		    !fr_pair_find_by_child_num(request->proxy->packet->vps, fr_dict_root(fr_dict_radius),
+		    			       PW_MESSAGE_AUTHENTICATOR, TAG_ANY)) {
 			fr_pair_make(request->proxy->packet, &request->proxy->packet->vps,
 				     "Message-Authenticator", "0x00", T_OP_SET);
 		}
@@ -2483,7 +2486,8 @@ home_server_t *home_server_ldb(char const *realmname,
 		break;
 
 	case HOME_POOL_KEYED_BALANCE:
-		if ((vp = fr_pair_find_by_num(request->control, 0, PW_LOAD_BALANCE_KEY, TAG_ANY)) != NULL) {
+		if ((vp = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+						    PW_LOAD_BALANCE_KEY, TAG_ANY)) != NULL) {
 			hash = fr_hash(vp->vp_strvalue, vp->vp_length);
 			start = hash % pool->num_home_servers;
 			break;

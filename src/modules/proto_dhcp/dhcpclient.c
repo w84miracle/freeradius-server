@@ -354,8 +354,10 @@ static RADIUS_PACKET *fr_dhcp_recv_raw_loop(int lsockfd,
 			if (!reply_p) reply_p = cur_reply_p;
 
 			if (cur_reply_p->code == PW_DHCP_OFFER) {
-				VALUE_PAIR *vp1 = fr_pair_find_by_num(cur_reply_p->vps, DHCP_MAGIC_VENDOR, 54, TAG_ANY); /* DHCP-DHCP-Server-Identifier */
-				VALUE_PAIR *vp2 = fr_pair_find_by_num(cur_reply_p->vps, DHCP_MAGIC_VENDOR, 264, TAG_ANY); /* DHCP-Your-IP-address */
+				VALUE_PAIR *vp1 = fr_pair_find_by_child_num(cur_reply_p->vps, fr_dict_root(dict_dhcp),
+									    54, TAG_ANY); /* DHCP-DHCP-Server-Identifier */
+				VALUE_PAIR *vp2 = fr_pair_find_by_child_num(cur_reply_p->vps, fr_dict_root(dict_dhcp),
+									    264, TAG_ANY); /* DHCP-Your-IP-address */
 
 				if (vp1 && vp2) {
 					nb_offer ++;

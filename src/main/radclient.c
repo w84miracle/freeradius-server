@@ -881,17 +881,22 @@ static int send_one_packet(rc_request_t *request)
 		if (request->password) {
 			VALUE_PAIR *vp;
 
-			if ((vp = fr_pair_find_by_num(request->packet->vps, 0, PW_USER_PASSWORD, TAG_ANY)) != NULL) {
+			if ((vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(dict_radius),
+							    PW_USER_PASSWORD, TAG_ANY)) != NULL) {
 				fr_pair_value_strcpy(vp, request->password->vp_strvalue);
 
-			} else if ((vp = fr_pair_find_by_num(request->packet->vps, 0, PW_CHAP_PASSWORD, TAG_ANY)) != NULL) {
+			} else if ((vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(dict_radius),
+								   PW_CHAP_PASSWORD, TAG_ANY)) != NULL) {
 				uint8_t buffer[17];
 
-				fr_radius_encode_chap_password(buffer, request->packet, fr_rand() & 0xff, request->password);
+				fr_radius_encode_chap_password(buffer, request->packet, fr_rand() & 0xff,
+							       request->password);
 				fr_pair_value_memcpy(vp, buffer, 17);
 
-			} else if (fr_pair_find_by_num(request->packet->vps, 0, PW_MS_CHAP_PASSWORD, TAG_ANY) != NULL) {
-				mschapv1_encode(request->packet, &request->packet->vps, request->password->vp_strvalue);
+			} else if (fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(dict),
+							     PW_MS_CHAP_PASSWORD, TAG_ANY) != NULL) {
+				mschapv1_encode(request->packet, &request->packet->vps,
+						request->password->vp_strvalue);
 
 			} else {
 				DEBUG("WARNING: No password in the request");

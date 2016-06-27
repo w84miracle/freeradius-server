@@ -764,10 +764,10 @@ ssize_t fr_sim_encode(REQUEST *request, fr_dict_attr_t const *parent, uint8_t ty
 	}
 	subtype = vp->vp_short;
 
-	vp = fr_pair_find_by_num(to_encode, 0, PW_EAP_ID, TAG_ANY);
+	vp = fr_pair_find_by_child_num(to_encode, fr_dict_root(fr_dict_internal), PW_EAP_ID, TAG_ANY);
 	id = vp ? vp->vp_integer : ((int)getpid() & 0xff);
 
-	vp = fr_pair_find_by_num(to_encode, 0, PW_EAP_CODE, TAG_ANY);
+	vp = fr_pair_find_by_child_num(to_encode, fr_dict_root(fr_dict_internal), PW_EAP_CODE, TAG_ANY);
 	eap_code = vp ? vp->vp_integer : PW_EAP_REQUEST;
 
 	/*

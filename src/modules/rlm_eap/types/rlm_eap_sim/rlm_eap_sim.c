@@ -320,8 +320,9 @@ static int process_eap_sim_start(eap_session_t *eap_session, VALUE_PAIR *vps)
 
 	eap_sim_session = talloc_get_type_abort(eap_session->opaque, eap_sim_session_t);
 
-	nonce_vp = fr_pair_find_by_child_num(vps, dict_sim_root, PW_EAP_SIM_NONCE_MT, TAG_ANY);
-	selected_version_vp = fr_pair_find_by_child_num(vps, dict_sim_root, PW_EAP_SIM_SELECTED_VERSION, TAG_ANY);
+	nonce_vp = fr_pair_find_by_child_num(vps, fr_dict_root(dict_sim), PW_EAP_SIM_NONCE_MT, TAG_ANY);
+	selected_version_vp = fr_pair_find_by_child_num(vps, fr_dict_root(dict_sim),
+							PW_EAP_SIM_SELECTED_VERSION, TAG_ANY);
 	if (!nonce_vp || !selected_version_vp) {
 		RDEBUG2("Client did not select a version and send a NONCE");
 		eap_sim_state_enter(eap_session, eap_sim_session, EAP_SIM_SERVER_START);
@@ -454,7 +455,7 @@ static rlm_rcode_t mod_process(UNUSED void *arg, eap_session_t *eap_session)
 	/*
 	 *	See what kind of message we have gotten
 	 */
-	vp = fr_pair_find_by_child_num(vps, dict_sim_root, PW_EAP_SIM_SUBTYPE, TAG_ANY);
+	vp = fr_pair_find_by_child_num(vps, fr_dict_root(dict_sim), PW_EAP_SIM_SUBTYPE, TAG_ANY);
 	if (!vp) {
 		REDEBUG2("No subtype attribute was created, message dropped");
 		return 0;

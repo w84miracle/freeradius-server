@@ -665,24 +665,6 @@ VALUE_PAIR *fr_pair_find_by_da(VALUE_PAIR *head, fr_dict_attr_t const *da, int8_
 	return fr_pair_cursor_next_by_da(&cursor, da, tag);
 }
 
-
-/** Find the pair with the matching attribute
- *
- * @todo should take DAs and do a pointer comparison.
- */
-VALUE_PAIR *fr_pair_find_by_num(VALUE_PAIR *head, unsigned int vendor, unsigned int attr, int8_t tag)
-{
-	vp_cursor_t 	cursor;
-
-	/* List head may be NULL if it contains no VPs */
-	if (!head) return NULL;
-
-	VERIFY_LIST(head);
-
-	(void) fr_pair_cursor_init(&cursor, &head);
-	return fr_pair_cursor_next_by_child_num(&cursor, vendor, attr, tag);
-}
-
 /** Find the pair with the matching attribute
  *
  */

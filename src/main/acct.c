@@ -84,7 +84,7 @@ rlm_rcode_t rad_accounting(REQUEST *request)
 		 *	Do the data storage before proxying. This is to ensure
 		 *	that we log the packet, even if the proxy never does.
 		 */
-		vp = fr_pair_find_by_num(request->control, 0, PW_ACCT_TYPE, TAG_ANY);
+		vp = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal), PW_ACCT_TYPE, TAG_ANY);
 		if (vp) {
 			acct_type = vp->vp_integer;
 			DEBUG2("  Found Acct-Type %s",
@@ -122,7 +122,8 @@ rlm_rcode_t rad_accounting(REQUEST *request)
 		 *	Maybe one of the preacct modules has decided
 		 *	that a proxy should be used.
 		 */
-		if ((vp = fr_pair_find_by_num(request->control, 0, PW_PROXY_TO_REALM, TAG_ANY))) {
+		if ((vp = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+						    PW_PROXY_TO_REALM, TAG_ANY))) {
 			REALM *realm;
 
 			/*

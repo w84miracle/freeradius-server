@@ -57,7 +57,7 @@ static void vmps_running(REQUEST *request, fr_state_action_t action)
 		request->server_cs = request->listener->server_cs;
 		request->component = "vmps";
 
-		vp = fr_pair_find_by_num(request->packet->vps, 0, 0x2b00, TAG_ANY);
+		vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(dict_vqp), 0x2b00, TAG_ANY);
 		if (!vp) {
 			REDEBUG("Failed to find &request:VMPS-Packet-Type");
 			goto done;
@@ -81,7 +81,7 @@ static void vmps_running(REQUEST *request, fr_state_action_t action)
 
 		if (request->master_state == REQUEST_STOP_PROCESSING) goto done;
 
-		vp = fr_pair_find_by_num(request->reply->vps, 0, 0x2b00, TAG_ANY);
+		vp = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(dict_vqp), 0x2b00, TAG_ANY);
 		if (vp) {
 			da = vp->da;
 

@@ -533,7 +533,8 @@ int paircompare(REQUEST *request, VALUE_PAIR *req_list, VALUE_PAIR *check,
 				WARN("Are you sure you don't mean Cleartext-Password?");
 				WARN("See \"man rlm_pap\" for more information");
 			}
-			if (fr_pair_find_by_num(req_list, 0, PW_USER_PASSWORD, TAG_ANY) == NULL) {
+			if (fr_pair_find_by_child_num(req_list, fr_dict_root(fr_dict_radius),
+						      PW_USER_PASSWORD, TAG_ANY) == NULL) {
 				continue;
 			}
 			break;

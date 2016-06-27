@@ -106,7 +106,8 @@ static int check_for_realm(void const *instance, REQUEST *request, REALM **retur
 	 *      it already ( via another rlm_realm instance ) and should return.
 	 */
 
-	if (fr_pair_find_by_num(request->packet->vps, 0, PW_REALM, TAG_ANY) != NULL) {
+	if (fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_internal),
+				      PW_REALM, TAG_ANY) != NULL) {
 		RDEBUG2("Request already has destination realm set.  Ignoring");
 		return RLM_MODULE_NOOP;
 	}
@@ -291,7 +292,8 @@ static int check_for_realm(void const *instance, REQUEST *request, REALM **retur
 	 *      that has already proxied the request, we don't need to do
 	 *      it again.
 	 */
-	vp = fr_pair_find_by_num(request->packet->vps, 0, PW_FREERADIUS_PROXIED_TO, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_internal),
+				       PW_FREERADIUS_PROXIED_TO, TAG_ANY);
 	if (vp && (request->packet->src_ipaddr.af == AF_INET)) {
 		int i;
 		fr_ipaddr_t my_ipaddr;
@@ -470,12 +472,13 @@ static rlm_rcode_t mod_realm_recv_coa(UNUSED void *instance, UNUSED void *thread
 	VALUE_PAIR *vp;
 	REALM *realm;
 
-	if (fr_pair_find_by_num(request->packet->vps, 0, PW_REALM, TAG_ANY) != NULL) {
+	if (fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_internal),
+				      PW_REALM, TAG_ANY) != NULL) {
 		RDEBUG2("Request already has destination realm set.  Ignoring");
 		return RLM_MODULE_NOOP;
 	}
 
-	vp = fr_pair_find_by_num(request->packet->vps, 0, PW_OPERATOR_NAME, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius), PW_OPERATOR_NAME, TAG_ANY);
 	if (!vp) return RLM_MODULE_NOOP;
 
 	/*

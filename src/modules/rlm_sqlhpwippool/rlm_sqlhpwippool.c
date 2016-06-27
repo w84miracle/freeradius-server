@@ -313,14 +313,15 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 
 
 	/* if IP is already there, then nothing to do */
-	vp = fr_pair_find_by_num(request->reply->vps, 0, PW_FRAMED_IP_ADDRESS, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(dict_radius),
+				       PW_FRAMED_IP_ADDRESS, TAG_ANY);
 	if (vp) {
 		RDEBUG2("IP address already in the reply packet - exiting");
 		return RLM_MODULE_NOOP;
 	}
 
 	/* if no pool name, we don't need to do anything */
-	vp = fr_pair_find_by_num(request->reply->vps, VENDORPEC_ASN, ASN_IP_POOL_NAME, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->reply->vps, vendor_asn, ASN_IP_POOL_NAME, TAG_ANY);
 	if (vp) {
 		pname = vp->vp_strvalue;
 		RDEBUG2("pool name = '%s'", pname);
@@ -331,7 +332,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 	}
 
 	/* if no NAS IP address, assign 0 */
-	vp = fr_pair_find_by_num(request->packet->vps, 0, PW_NAS_IP_ADDRESS, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(dict_radius), PW_NAS_IP_ADDRESS, TAG_ANY);
 	if (vp) {
 		nasip = ntohl(vp->vp_ipaddr);
 	}
@@ -566,7 +567,7 @@ end_prio: continue;	  /* stupid */
 end_gid:
 
 	/* release SQL socket */
-fr_connection_release(inst->sql_inst->pool, request, sqlsock);
+	fr_connection_release(inst->sql_inst->pool, request, sqlsock);
 
 	/* no free IP address found */
 	if (!ip.s_addr) {
@@ -603,7 +604,8 @@ static rlm_rcode_t CC_HINT(nonnull) mod_accounting(void *instance, UNUSED void *
 	rlm_sqlhpwippool_t *inst = (rlm_sqlhpwippool_t *) instance;
 
 	/* if no unique session ID, don't even try */
-	vp = fr_pair_find_by_num(request->packet->vps, 0, PW_ACCT_UNIQUE_SESSION_ID, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_internal),
+				       PW_ACCT_UNIQUE_SESSION_ID, TAG_ANY);
 	if (vp) {
 		sessid = vp->vp_strvalue;
 	}
@@ -612,7 +614,8 @@ static rlm_rcode_t CC_HINT(nonnull) mod_accounting(void *instance, UNUSED void *
 		return RLM_MODULE_FAIL;
 	}
 
-	vp = fr_pair_find_by_num(request->packet->vps, 0, PW_ACCT_STATUS_TYPE, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(dict_radius),
+				       PW_ACCT_STATUS_TYPE, TAG_ANY);
 	if (vp) {
 		acct_type = vp->vp_integer;
 	}
@@ -640,7 +643,8 @@ static rlm_rcode_t CC_HINT(nonnull) mod_accounting(void *instance, UNUSED void *
 	switch (acct_type) {
 	case PW_STATUS_START:
 	case PW_STATUS_ALIVE:
-		vp = fr_pair_find_by_num(request->packet->vps, 0, PW_FRAMED_IP_ADDRESS, TAG_ANY);
+		vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(dict_radius),
+					       PW_FRAMED_IP_ADDRESS, TAG_ANY);
 		if (!vp) {
 			REDEBUG("No framed IP");
 			fr_connection_release(inst->sql_inst->pool, request, sqlsock);
@@ -680,7 +684,8 @@ static rlm_rcode_t CC_HINT(nonnull) mod_accounting(void *instance, UNUSED void *
 
 	case PW_STATUS_ACCOUNTING_OFF:
 	case PW_STATUS_ACCOUNTING_ON:
-		vp = fr_pair_find_by_num(request->packet->vps, 0, PW_NAS_IP_ADDRESS, TAG_ANY);
+		vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(dict_radius),
+					       PW_NAS_IP_ADDRESS, TAG_ANY);
 		if (!vp) {
 			REDEBUG("No NAS IP");
 			fr_connection_release(inst->sql_inst->pool, request, sqlsock);

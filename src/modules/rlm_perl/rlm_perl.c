@@ -945,11 +945,16 @@ static int do_perl(void *instance, REQUEST *request, char const *function_name)
 			/*
 			 *	Update cached copies
 			 */
-			request->username = fr_pair_find_by_num(request->packet->vps, 0, PW_USER_NAME, TAG_ANY);
-			request->password = fr_pair_find_by_num(request->packet->vps, 0, PW_USER_PASSWORD, TAG_ANY);
+			request->username = fr_pair_find_by_child_num(request->packet->vps,
+								      fr_dict_root(fr_dict_radius),
+								      PW_USER_NAME, TAG_ANY);
+			request->password = fr_pair_find_by_child_num(request->packet->vps,
+								      fr_dict_root(fr_dict_radius),
+								      PW_USER_PASSWORD, TAG_ANY);
 			if (!request->password)
-				request->password = fr_pair_find_by_num(request->packet->vps, 0, PW_CHAP_PASSWORD,
-									TAG_ANY);
+				request->password = fr_pair_find_by_child_num(request->packet->vps,
+									      fr_dict_root(fr_dict_radius),
+									      PW_CHAP_PASSWORD, TAG_ANY);
 		}
 
 		if ((get_hv_content(request->reply, request, rad_reply_hv, &vp, "RAD_REPLY", "reply")) == 0) {
@@ -1024,7 +1029,8 @@ static rlm_rcode_t CC_HINT(nonnull) mod_accounting(void *instance, UNUSED void *
 	VALUE_PAIR	*pair;
 	int 		acctstatustype = 0;
 
-	if ((pair = fr_pair_find_by_num(request->packet->vps, 0, PW_ACCT_STATUS_TYPE, TAG_ANY)) != NULL) {
+	if ((pair = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+					      PW_ACCT_STATUS_TYPE, TAG_ANY)) != NULL) {
 		acctstatustype = pair->vp_integer;
 	} else {
 		RDEBUG("Invalid Accounting Packet");

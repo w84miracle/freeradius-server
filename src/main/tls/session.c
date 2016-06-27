@@ -1592,7 +1592,8 @@ tls_session_t *tls_session_init_server(TALLOC_CTX *ctx, fr_tls_conf_t *conf, REQ
 	/*
 	 *	Add the session certificate to the session.
 	 */
-	vp = fr_pair_find_by_num(request->control, 0, PW_TLS_SESSION_CERT_FILE, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+				       PW_TLS_SESSION_CERT_FILE, TAG_ANY);
 	if (vp) {
 		RDEBUG2("Loading TLS session certificate \"%s\"", vp->vp_strvalue);
 
@@ -1669,7 +1670,7 @@ tls_session_t *tls_session_init_server(TALLOC_CTX *ctx, fr_tls_conf_t *conf, REQ
 	 *	just too much.
 	 */
 	session->mtu = conf->fragment_size;
-	vp = fr_pair_find_by_num(request->packet->vps, 0, PW_FRAMED_MTU, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius), PW_FRAMED_MTU, TAG_ANY);
 	if (vp && (vp->vp_integer > 100) && (vp->vp_integer < session->mtu)) {
 		RDEBUG2("Setting fragment_len from &Framed-MTU");
 		session->mtu = vp->vp_integer;

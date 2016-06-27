@@ -1303,7 +1303,8 @@ char const *rlm_ldap_find_user(rlm_ldap_t const *inst, REQUEST *request, ldap_ha
 	 *	If the caller isn't looking for the result we can just return the current userdn value.
 	 */
 	if (!force) {
-		vp = fr_pair_find_by_num(request->control, 0, PW_LDAP_USERDN, TAG_ANY);
+		vp = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+					       PW_LDAP_USERDN, TAG_ANY);
 		if (vp) {
 			RDEBUG("Using user DN from request \"%s\"", vp->vp_strvalue);
 			*rcode = RLM_MODULE_OK;
@@ -1488,11 +1489,16 @@ void rlm_ldap_check_reply(rlm_ldap_t const *inst, REQUEST *request, ldap_handle_
 	*/
 	if (!inst->expect_password || (rad_debug_lvl < L_DBG_LVL_2)) return;
 
-	if (!fr_pair_find_by_num(request->control, 0, PW_CLEARTEXT_PASSWORD, TAG_ANY) &&
-	    !fr_pair_find_by_num(request->control, 0, PW_NT_PASSWORD, TAG_ANY) &&
-	    !fr_pair_find_by_num(request->control, 0, PW_USER_PASSWORD, TAG_ANY) &&
-	    !fr_pair_find_by_num(request->control, 0, PW_PASSWORD_WITH_HEADER, TAG_ANY) &&
-	    !fr_pair_find_by_num(request->control, 0, PW_CRYPT_PASSWORD, TAG_ANY)) {
+	if (!fr_pair_find_by_child_num(request->control,
+				       fr_dict_root(fr_dict_internal), PW_CLEARTEXT_PASSWORD, TAG_ANY) &&
+	    !fr_pair_find_by_child_num(request->control,
+	    			       fr_dict_root(fr_dict_internal), PW_NT_PASSWORD, TAG_ANY) &&
+	    !fr_pair_find_by_child_num(request->control,
+	    			       fr_dict_root(fr_dict_internal), PW_USER_PASSWORD, TAG_ANY) &&
+	    !fr_pair_find_by_child_num(request->control,
+	    			       fr_dict_root(fr_dict_internal), PW_PASSWORD_WITH_HEADER, TAG_ANY) &&
+	    !fr_pair_find_by_child_num(request->control,
+	    			       fr_dict_root(fr_dict_internal), PW_CRYPT_PASSWORD, TAG_ANY)) {
 		switch (conn->directory->type) {
 		case LDAP_DIRECTORY_ACTIVE_DIRECTORY:
 			RWDEBUG("!!! Found map between LDAP attribute and a FreeRADIUS password attribute");
@@ -1500,7 +1506,6 @@ void rlm_ldap_check_reply(rlm_ldap_t const *inst, REQUEST *request, ldap_handle_
 			RWDEBUG("!!! Remove the password map and either:");
 			RWDEBUG("!!!  - Configure authentication via ntlm_auth (mschapv2 only)");
 			RWDEBUG("!!!  - Configure authentication via wbclient (mschapv2 only)");
-			RWDEBUG("!!!    that password attribute");
 			RWDEBUG("!!!  - Bind as the user by listing %s in the authenticate section, and",
 				inst->name);
 			RWDEBUG("!!!	setting attribute &control:Auth-Type := '%s' in the authorize section",
@@ -1515,7 +1520,6 @@ void rlm_ldap_check_reply(rlm_ldap_t const *inst, REQUEST *request, ldap_handle_
 			RWDEBUG("!!! Remove the password map and either:");
 			RWDEBUG("!!!  - Set 'edir = yes' and enable the universal password feature on your ");
 			RWDEBUG("!!!    eDir server (recommended)");
-			RWDEBUG("!!!    that password attribute");
 			RWDEBUG("!!!  - Bind as the user by listing %s in the authenticate section, and",
 				inst->name);
 			RWDEBUG("!!!	setting attribute &control:Auth-Type := '%s' in the authorize section",

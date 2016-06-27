@@ -171,6 +171,8 @@ int do_auth_wbclient(rlm_mschap_t const *inst, REQUEST *request,
 		if (normalised_username) {
 			RDEBUG2("Starting retry, normalised username %s to %s", authparams.account_name, normalised_username);
 			if (strcmp(authparams.account_name, normalised_username) != 0) {
+				fr_dict_attr_t const *vendor_microsoft;
+
 				authparams.account_name = normalised_username;
 
 				/* Set PW_MS_CHAP_USER_NAME */
@@ -182,12 +184,21 @@ int do_auth_wbclient(rlm_mschap_t const *inst, REQUEST *request,
 				RDEBUG2("retrying authentication request user='%s' domain='%s'", authparams.account_name,
 												authparams.domain_name);
 
+				vendor_microsoft = fr_dict_vendor_attr_by_num(fr_dict_radius,
+									      PW_VENDOR_SPECIFIC, VENDORPEC_MICROSOFT);
+				if (!vendor_microsoft) {
+					RERROR("Microsoft vendor not found in dictionaries");
+					goto normalised_username_retry_failure;
+				}
+
 				/* Recalculate hash */
-				if (!(vp_challenge = fr_pair_find_by_num(request->packet->vps, PW_MSCHAP_CHALLENGE, VENDORPEC_MICROSOFT, TAG_ANY))) {
+				if (!(vp_challenge = fr_pair_find_by_child_num(request->packet->vps, vendor_microsoft,
+									       PW_MSCHAP_CHALLENGE, TAG_ANY))) {
 					RERROR("Unable to get MS-CHAP-Challenge");
 					goto normalised_username_retry_failure;
 				}
-				if (!(vp_response = fr_pair_find_by_num(request->packet->vps, PW_MSCHAP2_RESPONSE, VENDORPEC_MICROSOFT, TAG_ANY))) {
+				if (!(vp_response = fr_pair_find_by_child_num(request->packet->vps, vendor_microsoft,
+									      PW_MSCHAP2_RESPONSE, TAG_ANY))) {
 					RERROR("Unable to get MS-CHAP2-Response");
 					goto normalised_username_retry_failure;
 				}
@@ -249,7 +260,7 @@ normalised_username_retry_failure:
 		break;
 	default:
 		/*
-		 * Only errors left are 
+		 * Only errors left are
 		 *   WBC_ERR_INVALID_PARAM
 		 *   WBC_ERR_NO_MEMORY
 		 * neither of which are particularly likely.

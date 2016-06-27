@@ -73,7 +73,7 @@ typedef struct rlm_files_t {
 static int fall_through(VALUE_PAIR *vp)
 {
 	VALUE_PAIR *tmp;
-	tmp = fr_pair_find_by_num(vp, 0, PW_FALL_THROUGH, TAG_ANY);
+	tmp = fr_pair_find_by_child_num(vp, fr_dict_root(fr_dict_internal), PW_FALL_THROUGH, TAG_ANY);
 
 	return tmp ? tmp->vp_integer : 0;
 }

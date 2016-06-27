@@ -263,7 +263,7 @@ static eap_type_t eap_process_nak(rlm_eap_t *inst, REQUEST *request,
 	 *	Pick one type out of the one they asked for,
 	 *	as they may have asked for many.
 	 */
-	vp = fr_pair_find_by_num(request->control, 0, PW_EAP_TYPE, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal), PW_EAP_TYPE, TAG_ANY);
 	for (i = 0; i < nak->length; i++) {
 		/*
 		 *	Type 0 is valid, and means there are no
@@ -404,7 +404,8 @@ static rlm_rcode_t eap_method_select(rlm_eap_t *inst, eap_session_t *eap_session
 		/*
 		 *	Allow per-user configuration of EAP types.
 		 */
-		vp = fr_pair_find_by_num(eap_session->request->control, 0, PW_EAP_TYPE, TAG_ANY);
+		vp = fr_pair_find_by_child_num(eap_session->request->control, fr_dict_root(fr_dict_internal),
+					       PW_EAP_TYPE, TAG_ANY);
 		if (vp) {
 			RDEBUG2("Setting method from &control:EAP-Type");
 			next = vp->vp_integer;
@@ -496,7 +497,8 @@ static rlm_rcode_t mod_authenticate(void *instance, UNUSED void *thread, REQUEST
 	eap_packet_raw_t	*eap_packet;
 	rlm_rcode_t		rcode;
 
-	if (!fr_pair_find_by_num(request->packet->vps, 0, PW_EAP_MESSAGE, TAG_ANY)) {
+	if (!fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(dict_radius),
+				       PW_EAP_MESSAGE, TAG_ANY)) {
 		REDEBUG("You set 'Auth-Type = EAP' for a request that does not contain an EAP-Message attribute!");
 		return RLM_MODULE_INVALID;
 	}
@@ -585,7 +587,8 @@ static rlm_rcode_t mod_authenticate(void *instance, UNUSED void *thread, REQUEST
 		/*
 		 *	Doesn't exist, add it in.
 		 */
-		vp = fr_pair_find_by_num(request->reply->vps, 0, PW_USER_NAME, TAG_ANY);
+		vp = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(dict_radius),
+					       PW_USER_NAME, TAG_ANY);
 		if (!vp) {
 			vp = fr_pair_copy(request->reply, request->username);
 			fr_pair_add(&request->reply->vps, vp);
@@ -663,7 +666,8 @@ static rlm_rcode_t mod_authorize(void *instance, UNUSED void *thread, REQUEST *r
 	 *	each EAP sub-module to look for eap_session->request->username,
 	 *	and to get excited if it doesn't appear.
 	 */
-	vp = fr_pair_find_by_num(request->control, 0, PW_AUTH_TYPE, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+				       PW_AUTH_TYPE, TAG_ANY);
 	if ((!vp) || (vp->vp_integer != PW_AUTH_TYPE_VALUE_REJECT)) {
 		vp = pair_make_config("Auth-Type", inst->name, T_OP_EQ);
 		if (!vp) {
@@ -768,7 +772,8 @@ static rlm_rcode_t mod_post_proxy(void *instance, UNUSED void *thread, REQUEST *
 			/*
 			 *	Doesn't exist, add it in.
 			 */
-			vp = fr_pair_find_by_num(request->reply->vps, 0, PW_USER_NAME, TAG_ANY);
+			vp = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(dict_radius),
+						       PW_USER_NAME, TAG_ANY);
 			if (!vp) {
 				pair_make_reply("User-Name", request->username->vp_strvalue, T_OP_EQ);
 			}
@@ -786,31 +791,14 @@ static rlm_rcode_t mod_post_proxy(void *instance, UNUSED void *thread, REQUEST *
 	 */
 	if (!request->proxy->reply) return RLM_MODULE_NOOP;
 
-	{
-		fr_dict_attr_t const *vendor = fr_dict_vendor_attr_by_num(fr_dict_radius, PW_VENDOR_SPECIFIC, 9);
-
+	fr_pair_cursor_init(&cursor, &request->proxy->reply->vps);
+	while ((vp = fr_pair_cursor_next_by_child_num(&cursor, vendor_cisco, 1, TAG_ANY))) {
 		/*
-		 *	No guarantees vendor is defined.
+		 *	If it's "leap:session-key", then stop.
+		 *
+		 *	The format is VERY specific!
 		 */
-		if (vendor) {
-			/*
-			 *	Hmm... there's got to be a better way to
-			 *	discover codes for vendor attributes.
-			 *
-			 *	This is vendor Cisco (9), Cisco-AVPair
-			 *	attribute (1)
-			 */
-			for (vp = fr_pair_cursor_init(&cursor, &request->proxy->reply->vps);
-			     vp;
-			     vp = fr_pair_cursor_next_by_child_num(&cursor, vendor, 1, TAG_ANY)) {
-				/*
-				 *	If it's "leap:session-key", then stop.
-				 *
-				 *	The format is VERY specific!
-				 */
-				if (strncasecmp(vp->vp_strvalue, "leap:session-key=", 17) == 0) break;
-			}
-		}
+		if (strncasecmp(vp->vp_strvalue, "leap:session-key=", 17) == 0) break;
 	}
 
 	/*
@@ -885,16 +873,16 @@ static rlm_rcode_t mod_post_auth(void *instance, UNUSED void *thread, REQUEST *r
 	/*
 	 *	Only build a failure message if something previously rejected the request
 	 */
-	vp = fr_pair_find_by_num(request->control, 0, PW_POST_AUTH_TYPE, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->control, fr_dict_root(dict_radius), PW_POST_AUTH_TYPE, TAG_ANY);
 
 	if (!vp || (vp->vp_integer != PW_POST_AUTH_TYPE_VALUE_REJECT)) return RLM_MODULE_NOOP;
 
-	if (!fr_pair_find_by_num(request->packet->vps, 0, PW_EAP_MESSAGE, TAG_ANY)) {
+	if (!fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(dict_radius), PW_EAP_MESSAGE, TAG_ANY)) {
 		RDEBUG3("Request didn't contain an EAP-Message, not inserting EAP-Failure");
 		return RLM_MODULE_NOOP;
 	}
 
-	if (fr_pair_find_by_num(request->reply->vps, 0, PW_EAP_MESSAGE, TAG_ANY)) {
+	if (fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(dict_radius), PW_EAP_MESSAGE, TAG_ANY)) {
 		RDEBUG3("Reply already contained an EAP-Message, not inserting EAP-Failure");
 		return RLM_MODULE_NOOP;
 	}
@@ -928,9 +916,10 @@ static rlm_rcode_t mod_post_auth(void *instance, UNUSED void *thread, REQUEST *r
 	 *	Make sure there's a message authenticator attribute in the response
 	 *	RADIUS protocol code will calculate the correct value later...
 	 */
-	vp = fr_pair_find_by_num(request->reply->vps, 0, PW_MESSAGE_AUTHENTICATOR, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(dict_radius),
+				       PW_MESSAGE_AUTHENTICATOR, TAG_ANY);
 	if (!vp) {
-		vp = fr_pair_afrom_child_num(request->reply, fr_dict_root(fr_dict_radius), PW_MESSAGE_AUTHENTICATOR);
+		vp = fr_pair_afrom_child_num(request->reply, fr_dict_root(dict_radius), PW_MESSAGE_AUTHENTICATOR);
 		fr_pair_value_memsteal(vp, talloc_zero_array(vp, uint8_t, AUTH_VECTOR_LEN));
 		fr_pair_add(&(request->reply->vps), vp);
 	}

@@ -343,7 +343,7 @@ static int vector_umts_from_ki(eap_session_t *eap_session, VALUE_PAIR *vps,
 	/*
 	 *	Generate a new RAND value, and derive Kc and SRES from Ki
 	 */
-	vp = fr_pair_find_by_num(vps, 0, PW_SIM_KI, TAG_ANY);
+	vp = fr_pair_find_by_child_num(vps, fr_dict_root(fr_dict_internal), PW_SIM_KI, TAG_ANY);
 	if (!vp) {
 		RDEBUG3("No &control:aka-KI found, not generating triplets locally");
 		return 1;
@@ -353,7 +353,7 @@ static int vector_umts_from_ki(eap_session_t *eap_session, VALUE_PAIR *vps,
 	 *	Check to see if have a Ki for the IMSI, this allows us to generate the rest
 	 *	of the triplets.
 	 */
-	version = fr_pair_find_by_num(vps, 0, PW_SIM_ALGO_VERSION, TAG_ANY);
+	version = fr_pair_find_by_child_num(vps, fr_dict_root(fr_dict_internal), PW_SIM_ALGO_VERSION, TAG_ANY);
 	if (!version) {
 		RDEBUG3("No &control:SIM-ALGO-VERSION found, not generating triplets locally");
 		return 1;

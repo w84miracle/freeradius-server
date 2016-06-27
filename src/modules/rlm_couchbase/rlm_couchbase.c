@@ -189,7 +189,8 @@ static rlm_rcode_t mod_accounting(void *instance, UNUSED void *thread, REQUEST *
 	rad_assert(request->packet != NULL);
 
 	/* sanity check */
-	if ((vp = fr_pair_find_by_num(request->packet->vps, 0, PW_ACCT_STATUS_TYPE, TAG_ANY)) == NULL) {
+	if ((vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+					    PW_ACCT_STATUS_TYPE, TAG_ANY)) == NULL) {
 		/* log debug */
 		RDEBUG("could not find status type in packet");
 		/* return */
@@ -269,7 +270,8 @@ static rlm_rcode_t mod_accounting(void *instance, UNUSED void *thread, REQUEST *
 	switch (status) {
 	case PW_STATUS_START:
 		/* add start time */
-		if ((vp = fr_pair_find_by_num(request->packet->vps, 0, PW_EVENT_TIMESTAMP, TAG_ANY)) != NULL) {
+		if ((vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+						    PW_EVENT_TIMESTAMP, TAG_ANY)) != NULL) {
 			/* add to json object */
 			json_object_object_add(cookie->jobj, "startTimestamp",
 					       mod_value_pair_to_json_object(request, vp));
@@ -278,7 +280,8 @@ static rlm_rcode_t mod_accounting(void *instance, UNUSED void *thread, REQUEST *
 
 	case PW_STATUS_STOP:
 		/* add stop time */
-		if ((vp = fr_pair_find_by_num(request->packet->vps, 0, PW_EVENT_TIMESTAMP, TAG_ANY)) != NULL) {
+		if ((vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+						    PW_EVENT_TIMESTAMP, TAG_ANY)) != NULL) {
 			/* add to json object */
 			json_object_object_add(cookie->jobj, "stopTimestamp",
 					       mod_value_pair_to_json_object(request, vp));
@@ -520,12 +523,14 @@ static rlm_rcode_t mod_checksimul(void *instance, UNUSED void *thread, REQUEST *
 	request->simul_count = 0;
 
 	/* get client ip address for MPP detection below */
-	if ((vp = fr_pair_find_by_num(request->packet->vps, 0, PW_FRAMED_IP_ADDRESS, TAG_ANY)) != NULL) {
+	if ((vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+					    PW_FRAMED_IP_ADDRESS, TAG_ANY)) != NULL) {
 		client_ip_addr = vp->vp_ipaddr;
 	}
 
 	/* get calling station id for MPP detection below */
-	if ((vp = fr_pair_find_by_num(request->packet->vps, 0, PW_CALLING_STATION_ID, TAG_ANY)) != NULL) {
+	if ((vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+					    PW_CALLING_STATION_ID, TAG_ANY)) != NULL) {
 		client_cs_id = vp->vp_strvalue;
 	}
 

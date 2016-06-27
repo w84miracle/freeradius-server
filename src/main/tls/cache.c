@@ -359,7 +359,8 @@ static SSL_SESSION *tls_cache_read(SSL *ssl,
 		return NULL;
 	}
 
-	vp = fr_pair_find_by_num(request->state, 0, PW_TLS_SESSION_DATA, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->state, fr_dict_root(fr_dict_internal),
+				       PW_TLS_SESSION_DATA, TAG_ANY);
 	if (!vp) {
 		RWDEBUG("No cached session found");
 		return NULL;
@@ -535,7 +536,8 @@ int tls_cache_disable_cb(SSL *ssl,
 	 */
 	if (!session->allow_session_resumption) goto disable;
 
-	vp = fr_pair_find_by_num(request->control, 0, PW_ALLOW_SESSION_RESUMPTION, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+				       PW_ALLOW_SESSION_RESUMPTION, TAG_ANY);
 	if (vp && (vp->vp_integer == 0)) {
 		RDEBUG2("&control:Allow-Session-Resumption == no, disabling session resumption");
 	disable:

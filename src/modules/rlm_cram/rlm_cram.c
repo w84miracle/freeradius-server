@@ -131,25 +131,26 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authenticate(UNUSED void *instance, UNUS
 	VALUE_PAIR *authtype, *challenge, *response, *password;
 	uint8_t buffer[64];
 
-	password = fr_pair_find_by_num(request->control, 0, PW_CLEARTEXT_PASSWORD, TAG_ANY);
+	password = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+					     PW_CLEARTEXT_PASSWORD, TAG_ANY);
 	if (!password) {
 		REDEBUG("&Cleartext-Password is required for authentication");
 		return RLM_MODULE_INVALID;
 	}
-	authtype = fr_pair_find_by_num(request->packet->vps, VENDORPEC_SM, SM_AUTHTYPE, TAG_ANY);
 
+	authtype = fr_pair_find_by_child_num(request->packet->vps, vendor_sm, SM_AUTHTYPE, TAG_ANY);
 	if (!authtype) {
 		REDEBUG("Required attribute &Sandy-Mail-Authtype missing");
 		return RLM_MODULE_INVALID;
 	}
-	challenge = fr_pair_find_by_num(request->packet->vps, VENDORPEC_SM, SM_CHALLENGE, TAG_ANY);
 
+	challenge = fr_pair_find_by_child_num(request->packet->vps, vendor_sm, SM_CHALLENGE, TAG_ANY);
 	if (!challenge) {
 		REDEBUG("Required attribute &Sandy-Mail-Challenge missing");
 		return RLM_MODULE_INVALID;
 	}
-	response = fr_pair_find_by_num(request->packet->vps, VENDORPEC_SM, SM_RESPONSE, TAG_ANY);
 
+	response = fr_pair_find_by_child_num(request->packet->vps, vendor_sm, SM_RESPONSE, TAG_ANY);
 	if (!response) {
 		REDEBUG("Required attribute &Sandy-Mail-Response missing");
 		return RLM_MODULE_INVALID;

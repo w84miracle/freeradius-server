@@ -1236,13 +1236,15 @@ static rlm_rcode_t mod_accounting(void *instance, UNUSED void *thread, REQUEST *
 	/*
 	 *	Pool-Action override
 	 */
-	vp = fr_pair_find_by_num(request->control, 0, PW_POOL_ACTION, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+				       PW_POOL_ACTION, TAG_ANY);
 	if (vp) return mod_action(inst, request, vp->vp_integer);
 
 	/*
 	 *	Otherwise, guess the action by Acct-Status-Type
 	 */
-	vp = fr_pair_find_by_num(request->packet->vps, 0, PW_ACCT_STATUS_TYPE, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+				       PW_ACCT_STATUS_TYPE, TAG_ANY);
 	if (!vp) {
 		RDEBUG2("Couldn't find &request:Acct-Status-Type or &control:Pool-Action, doing nothing...");
 		return RLM_MODULE_NOOP;
@@ -1275,7 +1277,7 @@ static rlm_rcode_t mod_authorize(void *instance, UNUSED void *thread, REQUEST *r
 	 *	Unless it's overridden the default action is to allocate
 	 *	when called in Post-Auth.
 	 */
-	vp = fr_pair_find_by_num(request->control, 0, PW_POOL_ACTION, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal), PW_POOL_ACTION, TAG_ANY);
 	return mod_action(inst, request, vp ? vp->vp_integer : POOL_ACTION_ALLOCATE);
 }
 
@@ -1289,7 +1291,7 @@ static rlm_rcode_t mod_post_auth(void *instance, UNUSED void *thread, REQUEST *r
 	 *	Unless it's overridden the default action is to allocate
 	 *	when called in Post-Auth.
 	 */
-	vp = fr_pair_find_by_num(request->control, 0, PW_POOL_ACTION, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal), PW_POOL_ACTION, TAG_ANY);
 	return mod_action(inst, request, vp ? vp->vp_integer : POOL_ACTION_ALLOCATE);
 }
 

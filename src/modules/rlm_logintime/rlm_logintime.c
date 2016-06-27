@@ -131,7 +131,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authorize(void *instance, UNUSED void *t
 	VALUE_PAIR *ends, *timeout;
 	int left;
 
-	ends = fr_pair_find_by_num(request->control, 0, PW_LOGIN_TIME, TAG_ANY);
+	ends = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal), PW_LOGIN_TIME, TAG_ANY);
 	if (!ends) {
 		return RLM_MODULE_NOOP;
 	}
@@ -175,7 +175,8 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authorize(void *instance, UNUSED void *t
 	 */
 	RDEBUG("Login within allowed time-slot, %d seconds left in this session", left);
 
-	timeout = fr_pair_find_by_num(request->reply->vps, 0, PW_SESSION_TIMEOUT, TAG_ANY);
+	timeout = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(fr_dict_radius),
+					    PW_SESSION_TIMEOUT, TAG_ANY);
 	if (timeout) {	/* just update... */
 		if (timeout->vp_integer > (unsigned int) left) {
 			timeout->vp_integer = left;

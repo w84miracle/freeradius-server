@@ -305,7 +305,7 @@ redo:
 	}
 
 unknown_header:
-	new = fr_pair_afrom_child_num(request, fr_dict_root(fr_dict_radius), PW_CLEARTEXT_PASSWORD);
+	new = fr_pair_afrom_child_num(request, fr_dict_root(fr_dict_internal), PW_CLEARTEXT_PASSWORD);
 	fr_pair_value_strcpy(new, vp->vp_strvalue);
 
 	return new;
@@ -347,7 +347,8 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authorize(void *instance, UNUSED void *t
 			/*
 			 *	Password already exists: use that instead of this one.
 			 */
-			if (fr_pair_find_by_num(request->control, 0, PW_CLEARTEXT_PASSWORD, TAG_ANY)) {
+			if (fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+						      PW_CLEARTEXT_PASSWORD, TAG_ANY)) {
 				RWDEBUG("Config already contains a \"known good\" password "
 					"(&control:Cleartext-Password).  Ignoring &config:Password-With-Header");
 				break;
@@ -468,15 +469,18 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authorize(void *instance, UNUSED void *t
 		 *	Likely going to be proxied.  Avoid printing
 		 *	warning message.
 		 */
-		if (fr_pair_find_by_num(request->control, 0, PW_REALM, TAG_ANY) ||
-		    (fr_pair_find_by_num(request->control, 0, PW_PROXY_TO_REALM, TAG_ANY))) {
+		if (fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+					      PW_REALM, TAG_ANY) ||
+		    (fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+		    			       PW_PROXY_TO_REALM, TAG_ANY))) {
 			return RLM_MODULE_NOOP;
 		}
 
 		/*
 		 *	The TLS types don't need passwords.
 		 */
-		vp = fr_pair_find_by_num(request->packet->vps, 0, PW_EAP_TYPE, TAG_ANY);
+		vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_internal),
+					       PW_EAP_TYPE, TAG_ANY);
 		if (vp &&
 		    ((vp->vp_integer == 13) || /* EAP-TLS */
 		     (vp->vp_integer == 21) || /* EAP-TTLS */

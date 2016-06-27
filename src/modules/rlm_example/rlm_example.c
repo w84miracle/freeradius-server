@@ -111,7 +111,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authorize(UNUSED void *instance, UNUSED 
 	/*
 	 *  Look for the 'state' attribute.
 	 */
-	state = fr_pair_find_by_num(request->packet->vps, 0, PW_STATE, TAG_ANY);
+	state = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius), PW_STATE, TAG_ANY);
 	if (state != NULL) {
 		RDEBUG("Found reply to access challenge");
 		return RLM_MODULE_OK;

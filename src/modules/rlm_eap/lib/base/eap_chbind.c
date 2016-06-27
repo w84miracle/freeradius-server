@@ -62,7 +62,8 @@ static bool chbind_build_response(REQUEST *request, CHBIND_REQ *chbind)
 	 *	Set the response code.  Default to "fail" if none was
 	 *	specified.
 	 */
-	vp = fr_pair_find_by_num(request->control, 0, PW_CHBIND_RESPONSE_CODE, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+				       PW_CHBIND_RESPONSE_CODE, TAG_ANY);
 	if (vp) {
 		ptr[0] = vp->vp_integer;
 	} else {
@@ -262,7 +263,7 @@ chbind_packet_t *eap_chbind_vp2packet(TALLOC_CTX *ctx, VALUE_PAIR *vps)
 		return NULL;
 	}
 
-	first = fr_pair_find_by_num(vps, VENDORPEC_UKERNA, PW_UKERNA_CHBIND, TAG_ANY);
+	first = fr_pair_find_by_child_num(vps, vendor, PW_UKERNA_CHBIND, TAG_ANY);
 	if (!first) return NULL;
 
 	/*

@@ -41,16 +41,19 @@ char *auth_name(char *buf, size_t buflen, REQUEST *request, bool do_cli)
 	uint32_t	port = 0;	/* RFC 2865 NAS-Port is 4 bytes */
 	char const	*tls = "";
 
-	if ((cli = fr_pair_find_by_num(request->packet->vps, 0, PW_CALLING_STATION_ID, TAG_ANY)) == NULL) {
+	if ((cli = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+					     PW_CALLING_STATION_ID, TAG_ANY)) == NULL) {
 		do_cli = false;
 	}
 
-	if ((pair = fr_pair_find_by_num(request->packet->vps, 0, PW_NAS_PORT, TAG_ANY)) != NULL) {
+	if ((pair = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+					      PW_NAS_PORT, TAG_ANY)) != NULL) {
 		port = pair->vp_integer;
 	}
 
 	if (request->packet->dst_port == 0) {
-		if (fr_pair_find_by_num(request->packet->vps, 0, PW_FREERADIUS_PROXIED_TO, TAG_ANY)) {
+		if (fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_internal),
+					      PW_FREERADIUS_PROXIED_TO, TAG_ANY)) {
 			tls = " via TLS tunnel";
 		} else {
 			tls = " via proxy to virtual server";
@@ -90,7 +93,8 @@ static int rad_authlog(char const *msg, REQUEST *request, int goodpass)
 	 * Get the correct username based on the configured value
 	 */
 	if (!log_stripped_names) {
-		username = fr_pair_find_by_num(request->packet->vps, 0, PW_USER_NAME, TAG_ANY);
+		username = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+						     PW_USER_NAME, TAG_ANY);
 	} else {
 		username = request->username;
 	}
@@ -111,7 +115,8 @@ static int rad_authlog(char const *msg, REQUEST *request, int goodpass)
 		if (!request->password) {
 			VALUE_PAIR *auth_type;
 
-			auth_type = fr_pair_find_by_num(request->control, 0, PW_AUTH_TYPE, TAG_ANY);
+			auth_type = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+							      PW_AUTH_TYPE, TAG_ANY);
 			if (auth_type) {
 				snprintf(clean_password, sizeof(clean_password),
 					 "<via Auth-Type = %s>",
@@ -119,7 +124,8 @@ static int rad_authlog(char const *msg, REQUEST *request, int goodpass)
 			} else {
 				strcpy(clean_password, "<no User-Password attribute>");
 			}
-		} else if (fr_pair_find_by_num(request->packet->vps, 0, PW_CHAP_PASSWORD, TAG_ANY)) {
+		} else if (fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+						     PW_CHAP_PASSWORD, TAG_ANY)) {
 			strcpy(clean_password, "<CHAP-Password>");
 		} else {
 			fr_snprint(clean_password, sizeof(clean_password),
@@ -224,11 +230,13 @@ static int CC_HINT(nonnull) rad_check_password(REQUEST *request)
 	 *	been set, and complain if so.
 	 */
 	if (auth_type < 0) {
-		if (fr_pair_find_by_num(request->control, 0, PW_CRYPT_PASSWORD, TAG_ANY) != NULL) {
+		if (fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+					      PW_CRYPT_PASSWORD, TAG_ANY) != NULL) {
 			RWDEBUG2("Please update your configuration, and remove 'Auth-Type = Crypt'");
 			RWDEBUG2("Use the PAP module instead");
 		}
-		else if (fr_pair_find_by_num(request->control, 0, PW_CLEARTEXT_PASSWORD, TAG_ANY) != NULL) {
+		else if (fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+						   PW_CLEARTEXT_PASSWORD, TAG_ANY) != NULL) {
 			RWDEBUG2("Please update your configuration, and remove 'Auth-Type = Local'");
 			RWDEBUG2("Use the PAP or CHAP modules instead");
 		}
@@ -295,7 +303,7 @@ rlm_rcode_t rad_postauth(REQUEST *request)
 	/*
 	 *	Do post-authentication calls. ignoring the return code.
 	 */
-	vp = fr_pair_find_by_num(request->control, 0, PW_POST_AUTH_TYPE, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal), PW_POST_AUTH_TYPE, TAG_ANY);
 	if (vp) {
 		postauth_type = vp->vp_integer;
 		RDEBUG2("Using Post-Auth-Type %s",
@@ -421,10 +429,12 @@ rlm_rcode_t rad_authenticate(REQUEST *request)
 	 *	Look for, and cache, passwords.
 	 */
 	if (!request->password) {
-		request->password = fr_pair_find_by_num(request->packet->vps, 0, PW_USER_PASSWORD, TAG_ANY);
+		request->password = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+							      PW_USER_PASSWORD, TAG_ANY);
 	}
 	if (!request->password) {
-		request->password = fr_pair_find_by_num(request->packet->vps, 0, PW_CHAP_PASSWORD, TAG_ANY);
+		request->password = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+							      PW_CHAP_PASSWORD, TAG_ANY);
 	}
 
 	/*
@@ -450,7 +460,8 @@ autz_redo:
 	case RLM_MODULE_REJECT:
 	case RLM_MODULE_USERLOCK:
 	default:
-		if ((module_msg = fr_pair_find_by_num(request->packet->vps, 0, PW_MODULE_FAILURE_MESSAGE, TAG_ANY)) != NULL) {
+		if ((module_msg = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_internal),
+							    PW_MODULE_FAILURE_MESSAGE, TAG_ANY)) != NULL) {
 			char msg[FR_MAX_STRING_LEN + 16];
 			snprintf(msg, sizeof(msg), "Invalid user (%s)",
 				 module_msg->vp_strvalue);
@@ -462,7 +473,8 @@ autz_redo:
 		return rcode;
 	}
 	if (!autz_retry) {
-		tmp = fr_pair_find_by_num(request->control, 0, PW_AUTZ_TYPE, TAG_ANY);
+		tmp = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+						PW_AUTZ_TYPE, TAG_ANY);
 		if (tmp) {
 			autz_type = tmp->vp_integer;
 			RDEBUG2("Using Autz-Type %s",
@@ -482,7 +494,8 @@ autz_redo:
 #ifdef WITH_PROXY
 	    (request->proxy == NULL) &&
 #endif
-	    ((tmp = fr_pair_find_by_num(request->control, 0, PW_PROXY_TO_REALM, TAG_ANY)) != NULL)) {
+	    ((tmp = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+	    				      PW_PROXY_TO_REALM, TAG_ANY)) != NULL)) {
 		REALM *realm;
 
 		realm = realm_find2(tmp->vp_strvalue);
@@ -535,7 +548,8 @@ authenticate:
 		RDEBUG2("Failed to authenticate the user");
 		request->reply->code = PW_CODE_ACCESS_REJECT;
 
-		if ((module_msg = fr_pair_find_by_num(request->packet->vps, 0, PW_MODULE_FAILURE_MESSAGE, TAG_ANY)) != NULL){
+		if ((module_msg = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_internal),
+							    PW_MODULE_FAILURE_MESSAGE, TAG_ANY)) != NULL){
 			char msg[FR_MAX_STRING_LEN+19];
 
 			snprintf(msg, sizeof(msg), "Login incorrect (%s)",
@@ -569,12 +583,14 @@ authenticate:
 
 #ifdef WITH_SESSION_MGMT
 	if (result >= 0 &&
-	    (check_item = fr_pair_find_by_num(request->control, 0, PW_SIMULTANEOUS_USE, TAG_ANY)) != NULL) {
+	    (check_item = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+	    					    PW_SIMULTANEOUS_USE, TAG_ANY)) != NULL) {
 		int r, session_type = 0;
 		char		logstr[1024];
 		char		umsg[FR_MAX_STRING_LEN + 1];
 
-		tmp = fr_pair_find_by_num(request->control, 0, PW_SESSION_TYPE, TAG_ANY);
+		tmp = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+						PW_SESSION_TYPE, TAG_ANY);
 		if (tmp) {
 			session_type = tmp->vp_integer;
 			RDEBUG2("Using Session-Type %s",
@@ -593,8 +609,10 @@ authenticate:
 				/* Multilink attempt. Check if port-limit > simultaneous-use */
 				VALUE_PAIR *port_limit;
 
-				if ((port_limit = fr_pair_find_by_num(request->reply->vps, 0, PW_PORT_LIMIT,
-								      TAG_ANY)) != NULL &&
+				if ((port_limit = fr_pair_find_by_child_num(request->reply->vps,
+									    fr_dict_root(fr_dict_radius),
+									    PW_PORT_LIMIT,
+									    TAG_ANY)) != NULL &&
 					port_limit->vp_integer > check_item->vp_integer){
 					RDEBUG2("MPP is OK");
 					mpp_ok = 1;
@@ -642,7 +660,8 @@ authenticate:
 	 */
 	if (request->reply->code == 0) request->reply->code = PW_CODE_ACCESS_ACCEPT;
 
-	if ((module_msg = fr_pair_find_by_num(request->packet->vps, 0, PW_MODULE_SUCCESS_MESSAGE, TAG_ANY)) != NULL){
+	if ((module_msg = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_internal),
+						    PW_MODULE_SUCCESS_MESSAGE, TAG_ANY)) != NULL){
 		char msg[FR_MAX_STRING_LEN+12];
 
 		snprintf(msg, sizeof(msg), "Login OK (%s)",
@@ -668,7 +687,7 @@ rlm_rcode_t rad_virtual_server(REQUEST *request)
 	rdebug_pair_list(L_DBG_LVL_1, request, request->packet->vps, NULL);
 
 	if (!request->username) {
-		request->username = fr_pair_find_by_num(request->packet->vps, 0, PW_USER_NAME, TAG_ANY);
+		request->username = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius), PW_USER_NAME, TAG_ANY);
 	}
 
 	/*
@@ -679,7 +698,7 @@ rlm_rcode_t rad_virtual_server(REQUEST *request)
 		 *	Look at the full User-Name with realm.
 		 */
 		if (request->parent->username->da->attr == PW_STRIPPED_USER_NAME) {
-			vp = fr_pair_find_by_num(request->parent->packet->vps, 0, PW_USER_NAME, TAG_ANY);
+			vp = fr_pair_find_by_child_num(request->parent->packet->vps, fr_dict_root(fr_dict_radius), PW_USER_NAME, TAG_ANY);
 			if (!vp) goto skip;
 		} else {
 			vp = request->parent->username;

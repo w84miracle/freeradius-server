@@ -63,7 +63,8 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authorize(UNUSED void *instance, UNUSED 
 	/*
 	 *	Fix Calling-Station-Id.  Damn you, WiMAX!
 	 */
-	vp = fr_pair_find_by_num(request->packet->vps, 0, PW_CALLING_STATION_ID, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+				       PW_CALLING_STATION_ID, TAG_ANY);
 	if (vp && (vp->vp_length == 6)) {
 		int	i;
 		char	*p;
@@ -115,8 +116,8 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 	uint8_t			mip_rk_1[EVP_MAX_MD_SIZE], mip_rk_2[EVP_MAX_MD_SIZE];
 	uint8_t			mip_rk[2 * EVP_MAX_MD_SIZE];
 
-	msk = fr_pair_find_by_num(request->reply->vps, 0, PW_EAP_MSK, TAG_ANY);
-	emsk = fr_pair_find_by_num(request->reply->vps, 0, PW_EAP_EMSK, TAG_ANY);
+	msk = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(fr_dict_internal), PW_EAP_MSK, TAG_ANY);
+	emsk = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(fr_dict_internal), PW_EAP_EMSK, TAG_ANY);
 	if (!msk || !emsk) {
 		RDEBUG("No EAP-MSK or EAP-EMSK.  Cannot create WiMAX keys");
 		return RLM_MODULE_NOOP;
@@ -200,8 +201,8 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 	/*
 	 *	Calculate mobility keys
 	 */
-	mn_nai = fr_pair_find_by_num(request->packet->vps, 0, PW_WIMAX_MN_NAI, TAG_ANY);
-	if (!mn_nai) mn_nai = fr_pair_find_by_num(request->reply->vps, 0, PW_WIMAX_MN_NAI, TAG_ANY);
+	mn_nai = fr_pair_find_by_child_num(request->packet->vps, vendor_wimax, PW_WIMAX_MN_NAI, TAG_ANY);
+	if (!mn_nai) mn_nai = fr_pair_find_by_child_num(request->reply->vps, vendor_wimax, PW_WIMAX_MN_NAI, TAG_ANY);
 	if (!mn_nai) {
 		RWDEBUG("WiMAX-MN-NAI was not found in the request or in the reply");
 		RWDEBUG("We cannot calculate MN-HA keys");
@@ -211,7 +212,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 	 *	WiMAX-IP-Technology
 	 */
 	vp = NULL;
-	if (mn_nai) vp = fr_pair_find_by_num(request->reply->vps, VENDORPEC_WIMAX, 23, TAG_ANY);
+	if (mn_nai) vp = fr_pair_find_by_child_num(request->reply->vps, vendor_wimax, 23, TAG_ANY);
 	if (!vp) {
 		RWDEBUG("WiMAX-IP-Technology not found in reply");
 		RWDEBUG("Not calculating MN-HA keys");
@@ -222,7 +223,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 		/*
 		 *	Look for WiMAX-hHA-IP-MIP4
 		 */
-		ip = fr_pair_find_by_num(request->reply->vps, VENDORPEC_WIMAX, 6, TAG_ANY);
+		ip = fr_pair_find_by_child_num(request->reply->vps, vendor_wimax, 6, TAG_ANY);
 		if (!ip) {
 			RWDEBUG("WiMAX-hHA-IP-MIP4 not found.  Cannot calculate MN-HA-PMIP4 key");
 			break;
@@ -242,7 +243,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 		/*
 		 *	Put MN-HA-PMIP4 into WiMAX-MN-hHA-MIP4-Key
 		 */
-		vp = fr_pair_find_by_num(request->reply->vps, VENDORPEC_WIMAX, 10, TAG_ANY);
+		vp = fr_pair_find_by_child_num(request->reply->vps, vendor_wimax, 10, TAG_ANY);
 		if (!vp) {
 			vp = radius_pair_create(request->reply, &request->reply->vps,
 					       10, VENDORPEC_WIMAX);
@@ -256,7 +257,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 		/*
 		 *	Put MN-HA-PMIP4-SPI into WiMAX-MN-hHA-MIP4-SPI
 		 */
-		vp = fr_pair_find_by_num(request->reply->vps, VENDORPEC_WIMAX, 11, TAG_ANY);
+		vp = fr_pair_find_by_child_num(request->reply->vps, vendor_wimax, 11, TAG_ANY);
 		if (!vp) {
 			vp = radius_pair_create(request->reply, &request->reply->vps,
 					       11, VENDORPEC_WIMAX);
@@ -272,7 +273,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 		/*
 		 *	Look for WiMAX-hHA-IP-MIP4
 		 */
-		ip = fr_pair_find_by_num(request->reply->vps, VENDORPEC_WIMAX, 6, TAG_ANY);
+		ip = fr_pair_find_by_child_num(request->reply->vps, vendor_wimax, 6, TAG_ANY);
 		if (!ip) {
 			RWDEBUG("WiMAX-hHA-IP-MIP4 not found.  Cannot calculate MN-HA-CMIP4 key");
 			break;
@@ -292,7 +293,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 		/*
 		 *	Put MN-HA-CMIP4 into WiMAX-MN-hHA-MIP4-Key
 		 */
-		vp = fr_pair_find_by_num(request->reply->vps, VENDORPEC_WIMAX, 10, TAG_ANY);
+		vp = fr_pair_find_by_child_num(request->reply->vps, vendor_wimax, 10, TAG_ANY);
 		if (!vp) {
 			vp = radius_pair_create(request->reply, &request->reply->vps,
 					       10, VENDORPEC_WIMAX);
@@ -306,7 +307,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 		/*
 		 *	Put MN-HA-CMIP4-SPI into WiMAX-MN-hHA-MIP4-SPI
 		 */
-		vp = fr_pair_find_by_num(request->reply->vps, VENDORPEC_WIMAX, 11, TAG_ANY);
+		vp = fr_pair_find_by_child_num(request->reply->vps, vendor_wimax, 11, TAG_ANY);
 		if (!vp) {
 			vp = radius_pair_create(request->reply, &request->reply->vps,
 					       11, VENDORPEC_WIMAX);
@@ -322,7 +323,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 		/*
 		 *	Look for WiMAX-hHA-IP-MIP6
 		 */
-		ip = fr_pair_find_by_num(request->reply->vps, VENDORPEC_WIMAX, 7, TAG_ANY);
+		ip = fr_pair_find_by_child_num(request->reply->vps, vendor_wimax, 7, TAG_ANY);
 		if (!ip) {
 			RWDEBUG("WiMAX-hHA-IP-MIP6 not found.  Cannot calculate MN-HA-CMIP6 key");
 			break;
@@ -342,7 +343,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 		/*
 		 *	Put MN-HA-CMIP6 into WiMAX-MN-hHA-MIP6-Key
 		 */
-		vp = fr_pair_find_by_num(request->reply->vps, VENDORPEC_WIMAX, 12, TAG_ANY);
+		vp = fr_pair_find_by_child_num(request->reply->vps, vendor_wimax, 12, TAG_ANY);
 		if (!vp) {
 			vp = radius_pair_create(request->reply, &request->reply->vps,
 					       12, VENDORPEC_WIMAX);
@@ -356,7 +357,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 		/*
 		 *	Put MN-HA-CMIP6-SPI into WiMAX-MN-hHA-MIP6-SPI
 		 */
-		vp = fr_pair_find_by_num(request->reply->vps, VENDORPEC_WIMAX, 13, TAG_ANY);
+		vp = fr_pair_find_by_child_num(request->reply->vps, vendor_wimax, 13, TAG_ANY);
 		if (!vp) {
 			vp = radius_pair_create(request->reply, &request->reply->vps,
 					       13, VENDORPEC_WIMAX);
@@ -377,7 +378,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 	 *
 	 *	FA-RK= H(MIP-RK, "FA-RK")
 	 */
-	fa_rk = fr_pair_find_by_num(request->reply->vps, VENDORPEC_WIMAX, 14, TAG_ANY);
+	fa_rk = fr_pair_find_by_child_num(request->reply->vps, vendor_wimax, 14, TAG_ANY);
 	if (fa_rk && (fa_rk->vp_length <= 1)) {
 		HMAC_Init_ex(hmac, mip_rk, rk_len, EVP_sha1(), NULL);
 
@@ -393,10 +394,9 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 	 *	really MIP-SPI.  Clear?  Of course.  This is WiMAX.
 	 */
 	if (fa_rk) {
-		vp = fr_pair_find_by_num(request->reply->vps, VENDORPEC_WIMAX, 61, TAG_ANY);
+		vp = fr_pair_find_by_child_num(request->reply->vps, vendor_wimax, 61, TAG_ANY);
 		if (!vp) {
-			vp = radius_pair_create(request->reply, &request->reply->vps,
-					       61, VENDORPEC_WIMAX);
+			vp = radius_pair_create(request->reply, &request->reply->vps, 61, VENDORPEC_WIMAX);
 		}
 		if (!vp) {
 			RWDEBUG("Failed creating WiMAX-FA-RK-SPI");
@@ -410,7 +410,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 	 *
 	 *	WiMAX-RRQ-MN-HA-SPI
 	 */
-	vp = fr_pair_find_by_num(request->packet->vps, VENDORPEC_WIMAX, 20, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->packet->vps, vendor_wimax, 20, TAG_ANY);
 	if (vp) {
 		RDEBUG("Client requested MN-HA key: Should use SPI to look up key from storage");
 		if (!mn_nai) {
@@ -420,7 +420,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 		/*
 		 *	WiMAX-RRQ-HA-IP
 		 */
-		if (!fr_pair_find_by_num(request->packet->vps, VENDORPEC_WIMAX, 18, TAG_ANY)) {
+		if (!fr_pair_find_by_child_num(request->packet->vps, vendor_wimax, 18, TAG_ANY)) {
 			RWDEBUG("HA-IP was not found!");
 		}
 
@@ -428,7 +428,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 		/*
 		 *	WiMAX-HA-RK-Key-Requested
 		 */
-		vp = fr_pair_find_by_num(request->packet->vps, VENDORPEC_WIMAX, 58, TAG_ANY);
+		vp = fr_pair_find_by_child_num(request->packet->vps, vendor_wimax, 58, TAG_ANY);
 		if (vp && (vp->vp_integer == 1)) {
 			RDEBUG("Client requested HA-RK: Should use IP to look it up from storage");
 		}

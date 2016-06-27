@@ -446,13 +446,15 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 	/*
 	 *	If there is a Framed-IP-Address attribute in the reply do nothing
 	 */
-	if (fr_pair_find_by_num(request->reply->vps, 0, inst->framed_ip_address, TAG_ANY) != NULL) {
+	if (fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(fr_dict_internal),
+				      inst->framed_ip_address, TAG_ANY) != NULL) {
 		RDEBUG("Framed-IP-Address already exists");
 
 		return do_logging(request, inst->log_exists, RLM_MODULE_NOOP);
 	}
 
-	if (fr_pair_find_by_num(request->control, 0, PW_POOL_NAME, TAG_ANY) == NULL) {
+	if (fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+				      PW_POOL_NAME, TAG_ANY) == NULL) {
 		RDEBUG("No Pool-Name defined");
 
 		return do_logging(request, inst->log_nopool, RLM_MODULE_NOOP);
@@ -636,7 +638,8 @@ static rlm_rcode_t CC_HINT(nonnull) mod_accounting(void *instance, UNUSED void *
 	rlm_sqlippool_t		*inst = (rlm_sqlippool_t *) instance;
 	rlm_sql_handle_t	*handle;
 
-	vp = fr_pair_find_by_num(request->packet->vps, 0, PW_ACCT_STATUS_TYPE, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+				       PW_ACCT_STATUS_TYPE, TAG_ANY);
 	if (!vp) {
 		RDEBUG("Could not find account status type in packet");
 		return RLM_MODULE_NOOP;

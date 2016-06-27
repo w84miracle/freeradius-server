@@ -92,9 +92,11 @@ static int dhcprelay_process_client_request(REQUEST *request)
 	/*
 	 * It's invalid to have giaddr=0 AND a relay option
 	 */
-	giaddr = fr_pair_find_by_num(request->packet->vps, DHCP_MAGIC_VENDOR, 266, TAG_ANY); /* DHCP-Gateway-IP-Address */
+	giaddr = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(dict_dhcp),
+					   266, TAG_ANY); /* DHCP-Gateway-IP-Address */
 	if (giaddr && (giaddr->vp_ipaddr == htonl(INADDR_ANY)) &&
-			fr_pair_find_by_num(request->packet->vps, DHCP_MAGIC_VENDOR, 82, TAG_ANY)) { /* DHCP-Relay-Agent-Information */
+			fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(dict_dhcp),
+						  82, TAG_ANY)) { /* DHCP-Relay-Agent-Information */
 		RDEBUG2("Received packet with giaddr = 0 and containing relay option: Discarding packet");
 		return 1;
 	}
@@ -104,10 +106,12 @@ static int dhcprelay_process_client_request(REQUEST *request)
 	 *
 	 * Drop requests if hop-count > 16 or admin specified another value
 	 */
-	if ((vp = fr_pair_find_by_num(request->control, DHCP_MAGIC_VENDOR, 271, TAG_ANY))) { /* DHCP-Relay-Max-Hop-Count */
+	if ((vp = fr_pair_find_by_child_num(request->control, fr_dict_root(dict_dhcp),
+					    271, TAG_ANY))) { /* DHCP-Relay-Max-Hop-Count */
 	    maxhops = vp->vp_integer;
 	}
-	vp = fr_pair_find_by_num(request->packet->vps, DHCP_MAGIC_VENDOR, 259, TAG_ANY); /* DHCP-Hop-Count */
+	vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(dict_dhcp),
+				       259, TAG_ANY); /* DHCP-Hop-Count */
 	rad_assert(vp != NULL);
 	if (vp->vp_integer > maxhops) {
 		RDEBUG2("Number of hops is greater than %d: not relaying", maxhops);
@@ -128,7 +132,8 @@ static int dhcprelay_process_client_request(REQUEST *request)
 	request->packet->src_ipaddr.ipaddr.ip4addr.s_addr = sock->lsock.my_ipaddr.ipaddr.ip4addr.s_addr;
 	request->packet->src_port = sock->lsock.my_port;
 
-	vp = fr_pair_find_by_num(request->control, DHCP_MAGIC_VENDOR, 270, TAG_ANY); /* DHCP-Relay-To-IP-Address */
+	vp = fr_pair_find_by_child_num(request->control, fr_dict_root(dict_dhcp),
+				       270, TAG_ANY); /* DHCP-Relay-To-IP-Address */
 	rad_assert(vp != NULL);
 
 	/* set DEST ipaddr/port to the next server ipaddr/port */
@@ -172,7 +177,8 @@ static int dhcprelay_process_server_reply(REQUEST *request)
 	/*
 	 * Check that packet is for us.
 	 */
-	giaddr = fr_pair_find_by_num(request->packet->vps, DHCP_MAGIC_VENDOR, 266, TAG_ANY); /* DHCP-Gateway-IP-Address */
+	giaddr = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(dict_dhcp),
+					   266, TAG_ANY); /* DHCP-Gateway-IP-Address */
 
 	/* --with-udpfromto is needed just for the following test */
 	if (!giaddr || giaddr->vp_ipaddr != request->packet->dst_ipaddr.ipaddr.ip4addr.s_addr) {
@@ -196,9 +202,11 @@ static int dhcprelay_process_server_reply(REQUEST *request)
 
 	if ((request->packet->code == PW_DHCP_NAK) ||
 	    !sock->src_interface ||
-	    ((vp = fr_pair_find_by_num(request->packet->vps, DHCP_MAGIC_VENDOR, 262, TAG_ANY)) /* DHCP-Flags */ &&
+	    ((vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(dict_dhcp),
+	    				     262, TAG_ANY)) /* DHCP-Flags */ &&
 	     (vp->vp_integer & 0x8000) &&
-	     ((vp = fr_pair_find_by_num(request->packet->vps, DHCP_MAGIC_VENDOR, 263, TAG_ANY)) /* DHCP-Client-IP-Address */ &&
+	     ((vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(dict_dhcp),
+	     				      263, TAG_ANY)) /* DHCP-Client-IP-Address */ &&
 	      (vp->vp_ipaddr == htonl(INADDR_ANY))))) {
 		/*
 		 * RFC 2131, page 23
@@ -218,11 +226,13 @@ static int dhcprelay_process_server_reply(REQUEST *request)
 		 * - ciaddr if present
 		 * otherwise to yiaddr
 		 */
-		if ((vp = fr_pair_find_by_num(request->packet->vps, DHCP_MAGIC_VENDOR, 263, TAG_ANY)) /* DHCP-Client-IP-Address */ &&
+		if ((vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(dict_dhcp),
+						    263, TAG_ANY)) /* DHCP-Client-IP-Address */ &&
 		    (vp->vp_ipaddr != htonl(INADDR_ANY))) {
 			request->packet->dst_ipaddr.ipaddr.ip4addr.s_addr = vp->vp_ipaddr;
 		} else {
-			vp = fr_pair_find_by_num(request->packet->vps, DHCP_MAGIC_VENDOR, 264, TAG_ANY); /* DHCP-Your-IP-Address */
+			vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(dict_dhcp),
+						       264, TAG_ANY); /* DHCP-Your-IP-Address */
 			if (!vp) {
 				REDEBUG("Failed to find IP Address for request");
 				return -1;
@@ -238,8 +248,9 @@ static int dhcprelay_process_server_reply(REQUEST *request)
 			 * the client was requesting an IP address.
 			 */
 			if (request->packet->code == PW_DHCP_OFFER) {
-				VALUE_PAIR *hwvp = fr_pair_find_by_num(request->packet->vps, DHCP_MAGIC_VENDOR, 267,
-								       TAG_ANY); /* DHCP-Client-Hardware-Address */
+				VALUE_PAIR *hwvp = fr_pair_find_by_child_num(request->packet->vps,
+									     fr_dict_root(dict_dhcp), 267,
+									     TAG_ANY); /* DHCP-Client-Hardware-Address */
 				if (hwvp == NULL) {
 					RDEBUG2("DHCP_OFFER packet received with no Client Hardware Address. "
 						"Discarding packet");
@@ -305,7 +316,7 @@ static rlm_rcode_t dhcp_process(REQUEST *request)
 	 *	in the response.  That way the later code knows where
 	 *	to send the reply.
 	 */
-	vp = fr_pair_find_by_num(request->packet->vps, DHCP_MAGIC_VENDOR, 266, TAG_ANY); /* DHCP-Gateway-IP-Address */
+	vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(dict_dhcp), 266, TAG_ANY); /* DHCP-Gateway-IP-Address */
 	if (vp && (vp->vp_ipaddr != htonl(INADDR_ANY))) {
 		VALUE_PAIR *relay;
 
@@ -315,7 +326,7 @@ static rlm_rcode_t dhcp_process(REQUEST *request)
 		if (relay) relay->vp_ipaddr = vp->vp_ipaddr;
 	}
 
-	vp = fr_pair_find_by_num(request->packet->vps, DHCP_MAGIC_VENDOR, 53, TAG_ANY); /* DHCP-Message-Type */
+	vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(dict_dhcp), 53, TAG_ANY); /* DHCP-Message-Type */
 	if (vp) {
 		fr_dict_enum_t *dv = fr_dict_enum_by_da(vp->da, vp->vp_integer);
 
@@ -337,7 +348,7 @@ static rlm_rcode_t dhcp_process(REQUEST *request)
 		rcode = RLM_MODULE_FAIL;
 	}
 
-	vp = fr_pair_find_by_num(request->reply->vps, DHCP_MAGIC_VENDOR, 53, TAG_ANY); /* DHCP-Message-Type */
+	vp = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(dict_dhcp), 53, TAG_ANY); /* DHCP-Message-Type */
 	if (vp) {
 		request->reply->code = vp->vp_integer;
 		if ((request->reply->code != 0) &&
@@ -386,7 +397,7 @@ static rlm_rcode_t dhcp_process(REQUEST *request)
 	/*
 	 * 	Handle requests when acting as a DHCP relay
 	 */
-	vp = fr_pair_find_by_num(request->packet->vps, DHCP_MAGIC_VENDOR, 256, TAG_ANY); /* DHCP-Opcode */
+	vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(dict_dhcp), 256, TAG_ANY); /* DHCP-Opcode */
 	if (!vp) {
 		REDEBUG("Someone deleted the DHCP-Opcode!");
 		return RLM_MODULE_FAIL;
@@ -398,7 +409,7 @@ static rlm_rcode_t dhcp_process(REQUEST *request)
 	}
 
 	/* Packet from client, and we have DHCP-Relay-To-IP-Address */
-	if (fr_pair_find_by_num(request->control, DHCP_MAGIC_VENDOR, 270, TAG_ANY)) {
+	if (fr_pair_find_by_child_num(request->control, fr_dict_root(dict_dhcp), 270, TAG_ANY)) {
 		return dhcprelay_process_client_request(request);
 	}
 
@@ -431,15 +442,15 @@ static rlm_rcode_t dhcp_process(REQUEST *request)
 	for (i = 0; i < sizeof(attrnums) / sizeof(attrnums[0]); i++) {
 		uint32_t attr = attrnums[i];
 
-		if (fr_pair_find_by_num(request->reply->vps, DHCP_MAGIC_VENDOR, attr, TAG_ANY)) continue;
+		if (fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(dict_dhcp), attr, TAG_ANY)) continue;
 
-		vp = fr_pair_find_by_num(request->packet->vps, DHCP_MAGIC_VENDOR, attr, TAG_ANY);
+		vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(dict_dhcp), attr, TAG_ANY);
 		if (vp) {
 			fr_pair_add(&request->reply->vps, fr_pair_copy(request->reply, vp));
 		}
 	}
 
-	vp = fr_pair_find_by_num(request->reply->vps, DHCP_MAGIC_VENDOR, 256, TAG_ANY); /* DHCP-Opcode */
+	vp = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(dict_dhcp), 256, TAG_ANY); /* DHCP-Opcode */
 	rad_assert(vp != NULL);
 	vp->vp_integer = 2; /* BOOTREPLY */
 
@@ -447,7 +458,8 @@ static rlm_rcode_t dhcp_process(REQUEST *request)
 	 *	Allow NAKs to be delayed for a short period of time.
 	 */
 	if (request->reply->code == PW_DHCP_NAK) {
-		vp = fr_pair_find_by_num(request->reply->vps, 0, PW_FREERADIUS_RESPONSE_DELAY, TAG_ANY);
+		vp = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(fr_dict_internal),
+					       PW_FREERADIUS_RESPONSE_DELAY, TAG_ANY);
 		if (vp) {
 			if (vp->vp_integer <= 10) {
 				request->response_delay.tv_sec = vp->vp_integer;
@@ -458,7 +470,8 @@ static rlm_rcode_t dhcp_process(REQUEST *request)
 			}
 		} else {
 #define USEC 1000000
-			vp = fr_pair_find_by_num(request->reply->vps, 0, PW_FREERADIUS_RESPONSE_DELAY_USEC, TAG_ANY);
+			vp = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(fr_dict_internal),
+						       PW_FREERADIUS_RESPONSE_DELAY_USEC, TAG_ANY);
 			if (vp) {
 				if (vp->vp_integer <= 10 * USEC) {
 					request->response_delay.tv_sec = vp->vp_integer / USEC;
@@ -481,7 +494,8 @@ static rlm_rcode_t dhcp_process(REQUEST *request)
 	/*
 	 *	Packet-Src-IP-Address has highest precedence
 	 */
-	vp = fr_pair_find_by_num(request->reply->vps, 0, PW_PACKET_SRC_IP_ADDRESS, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(fr_dict_internal),
+				       PW_PACKET_SRC_IP_ADDRESS, TAG_ANY);
 	if (vp) {
 		request->reply->if_index = 0;	/* Must be 0, we don't know the outbound if_index */
 		request->reply->src_ipaddr.ipaddr.ip4addr.s_addr = vp->vp_ipaddr;
@@ -517,7 +531,7 @@ static rlm_rcode_t dhcp_process(REQUEST *request)
 	/*
 	 *	There's a Server-Identification attribute
 	 */
-	} else if ((vp = fr_pair_find_by_num(request->reply->vps, DHCP_MAGIC_VENDOR, 54, TAG_ANY))) {
+	} else if ((vp = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(dict_dhcp), 54, TAG_ANY))) {
 		request->reply->src_ipaddr.ipaddr.ip4addr.s_addr = vp->vp_ipaddr;
 	} else {
 		REDEBUG("Unable to determine correct src_ipaddr for response");
@@ -533,13 +547,14 @@ static rlm_rcode_t dhcp_process(REQUEST *request)
 	 *	packet to the client.  i.e. the relay may have a
 	 *	public IP, but the gateway a private one.
 	 */
-	vp = fr_pair_find_by_num(request->reply->vps, DHCP_MAGIC_VENDOR, 272, TAG_ANY); /* DHCP-Relay-IP-Address */
+	vp = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(dict_dhcp), 272, TAG_ANY); /* DHCP-Relay-IP-Address */
 	if (vp && (vp->vp_ipaddr != ntohl(INADDR_ANY))) {
 		RDEBUG2("Reply will be unicast to giaddr from original packet");
 		request->reply->dst_ipaddr.ipaddr.ip4addr.s_addr = vp->vp_ipaddr;
 		request->reply->dst_port = request->packet->dst_port;
 
-		vp = fr_pair_find_by_num(request->reply->vps, 0, PW_PACKET_DST_PORT, TAG_ANY);
+		vp = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(dict_dhcp),
+					       PW_PACKET_DST_PORT, TAG_ANY);
 		if (vp) request->reply->dst_port = vp->vp_integer;
 
 		return RLM_MODULE_OK;
@@ -554,7 +569,7 @@ static rlm_rcode_t dhcp_process(REQUEST *request)
 	 *	Gateways are servers, and listen on the server port,
 	 *	not the client port.
 	 */
-	vp = fr_pair_find_by_num(request->reply->vps, DHCP_MAGIC_VENDOR, 266, TAG_ANY); /* DHCP-Gateway-IP-Address */
+	vp = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(dict_dhcp), 266, TAG_ANY); /* DHCP-Gateway-IP-Address */
 	if (vp && (vp->vp_ipaddr != htonl(INADDR_ANY))) {
 		RDEBUG2("Reply will be unicast to giaddr");
 		request->reply->dst_ipaddr.ipaddr.ip4addr.s_addr = vp->vp_ipaddr;
@@ -567,9 +582,9 @@ static rlm_rcode_t dhcp_process(REQUEST *request)
 	 *	there's no client-ip-address, send a broadcast.
 	 */
 	if ((request->reply->code == PW_DHCP_NAK) ||
-	    ((vp = fr_pair_find_by_num(request->reply->vps, DHCP_MAGIC_VENDOR, 262, TAG_ANY)) && /* DHCP-Flags */
+	    ((vp = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(dict_dhcp), 262, TAG_ANY)) && /* DHCP-Flags */
 	     (vp->vp_integer & 0x8000) &&
-	     ((vp = fr_pair_find_by_num(request->reply->vps, DHCP_MAGIC_VENDOR, 263, TAG_ANY)) && /* DHCP-Client-IP-Address */
+	     ((vp = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(dict_dhcp), 263, TAG_ANY)) && /* DHCP-Client-IP-Address */
 	      (vp->vp_ipaddr == htonl(INADDR_ANY))))) {
 		/*
 		 * RFC 2131, page 23
@@ -589,14 +604,14 @@ static rlm_rcode_t dhcp_process(REQUEST *request)
 	 *
 	 *	Unicast to ciaddr if present, otherwise to yiaddr.
 	 */
-	if ((vp = fr_pair_find_by_num(request->reply->vps, DHCP_MAGIC_VENDOR, 263, TAG_ANY)) && /* DHCP-Client-IP-Address */
+	if ((vp = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(dict_dhcp), 263, TAG_ANY)) && /* DHCP-Client-IP-Address */
 	    (vp->vp_ipaddr != htonl(INADDR_ANY))) {
 		RDEBUG2("Reply will be sent unicast to &DHCP-Client-IP-Address");
 		request->reply->dst_ipaddr.ipaddr.ip4addr.s_addr = vp->vp_ipaddr;
 		return RLM_MODULE_OK;
 	}
 
-	vp = fr_pair_find_by_num(request->reply->vps, DHCP_MAGIC_VENDOR, 264, TAG_ANY); /* DHCP-Your-IP-Address */
+	vp = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(dict_dhcp), 264, TAG_ANY); /* DHCP-Your-IP-Address */
 	if (!vp) {
 		REDEBUG("Can't assign address to client: Neither &reply:DHCP-Client-IP-Address nor "
 			"&reply:DHCP-Your-IP-Address set");
@@ -638,7 +653,8 @@ static rlm_rcode_t dhcp_process(REQUEST *request)
 	 *	socket to send DHCP packets.
 	 */
 	if (request->reply->code == PW_DHCP_OFFER) {
-		VALUE_PAIR *hwvp = fr_pair_find_by_num(request->reply->vps, 267, DHCP_MAGIC_VENDOR, TAG_ANY); /* DHCP-Client-Hardware-Address */
+		VALUE_PAIR *hwvp = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(dict_dhcp),
+							     267, TAG_ANY); /* DHCP-Client-Hardware-Address */
 
 		if (!hwvp) return RLM_MODULE_FAIL;
 
@@ -886,7 +902,7 @@ static int dhcp_socket_send(rad_listen_t *listener, REQUEST *request)
 		uint8_t dhmac[ETHER_HDR_LEN] = { 0 };
 		bool found = false;
 		VALUE_PAIR *vp;
-		if ((vp = fr_pair_find_by_num(request->packet->vps, DHCP_MAGIC_VENDOR, 267, TAG_ANY))) {
+		if ((vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(dict_dhcp), 267, TAG_ANY))) {
 			if (vp->data.length == sizeof(vp->vp_ether)) {
 				memcpy(dhmac, vp->vp_ether, vp->data.length);
 				found = true;

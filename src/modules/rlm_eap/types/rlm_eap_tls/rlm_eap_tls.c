@@ -91,7 +91,8 @@ static rlm_rcode_t mod_process(void *type_arg, eap_session_t *eap_session)
 			fake->packet->vps = fr_pair_list_copy(fake->packet, request->packet->vps);
 
 			/* set the virtual server to use */
-			if ((vp = fr_pair_find_by_num(request->control, 0, PW_VIRTUAL_SERVER, TAG_ANY)) != NULL) {
+			if ((vp = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+							    PW_VIRTUAL_SERVER, TAG_ANY)) != NULL) {
 				fake->server = vp->vp_strvalue;
 			} else {
 				fake->server = inst->virtual_server;
@@ -168,7 +169,8 @@ static rlm_rcode_t mod_session_init(void *type_arg, eap_session_t *eap_session)
 	 *	EAP-TLS-Require-Client-Cert attribute will override
 	 *	the require_client_cert configuration option.
 	 */
-	vp = fr_pair_find_by_num(eap_session->request->control, 0, PW_EAP_TLS_REQUIRE_CLIENT_CERT, TAG_ANY);
+	vp = fr_pair_find_by_child_num(eap_session->request->control,
+				       fr_dict_root(fr_dict_internal), PW_EAP_TLS_REQUIRE_CLIENT_CERT, TAG_ANY);
 	if (vp) {
 		client_cert = vp->vp_integer ? true : false;
 	} else {

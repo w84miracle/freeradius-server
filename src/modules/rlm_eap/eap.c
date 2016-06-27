@@ -178,7 +178,8 @@ rlm_rcode_t eap_compose(eap_session_t *eap_session)
 	 *	Don't add a Message-Authenticator if
 	 *	it's already there.
 	 */
-	vp = fr_pair_find_by_num(request->reply->vps, 0, PW_MESSAGE_AUTHENTICATOR, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(fr_dict_radius),
+				       PW_MESSAGE_AUTHENTICATOR, TAG_ANY);
 	if (!vp) {
 		vp = fr_pair_afrom_child_num(request->reply, fr_dict_root(fr_dict_radius), PW_MESSAGE_AUTHENTICATOR);
 		fr_pair_value_memsteal(vp, talloc_zero_array(vp, uint8_t, AUTH_VECTOR_LEN));
@@ -240,7 +241,8 @@ int eap_start(rlm_eap_t const *inst, REQUEST *request)
 	VALUE_PAIR *vp, *proxy;
 	VALUE_PAIR *eap_msg;
 
-	eap_msg = fr_pair_find_by_num(request->packet->vps, 0, PW_EAP_MESSAGE, TAG_ANY);
+	eap_msg = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+					    PW_EAP_MESSAGE, TAG_ANY);
 	if (!eap_msg) {
 		RDEBUG2("No EAP-Message, not doing EAP");
 		return RLM_MODULE_NOOP;
@@ -250,7 +252,7 @@ int eap_start(rlm_eap_t const *inst, REQUEST *request)
 	 *	Look for EAP-Type = None (FreeRADIUS specific attribute)
 	 *	this allows you to NOT do EAP for some users.
 	 */
-	vp = fr_pair_find_by_num(request->packet->vps, 0, PW_EAP_TYPE, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_internal), PW_EAP_TYPE, TAG_ANY);
 	if (vp && vp->vp_integer == 0) {
 		RDEBUG2("Found EAP-Message, but EAP-Type = None, so we're not doing EAP");
 		return RLM_MODULE_NOOP;
@@ -266,7 +268,7 @@ int eap_start(rlm_eap_t const *inst, REQUEST *request)
 	 *	Check for a Proxy-To-Realm.  Don't get excited over LOCAL
 	 *	realms (sigh).
 	 */
-	proxy = fr_pair_find_by_num(request->control, 0, PW_PROXY_TO_REALM, TAG_ANY);
+	proxy = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal), PW_PROXY_TO_REALM, TAG_ANY);
 	if (proxy) {
 		REALM *realm;
 
@@ -845,7 +847,8 @@ eap_session_t *eap_session_continue(eap_packet_raw_t **eap_packet_p, rlm_eap_t c
 	if (eap_packet->data[0] != PW_EAP_IDENTITY) {
 		eap_session = eap_session_thaw(request);
 		if (!eap_session) {
-			vp = fr_pair_find_by_num(request->packet->vps, 0, PW_STATE, TAG_ANY);
+			vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+						       PW_STATE, TAG_ANY);
 			if (!vp) {
 				REDEBUG("EAP requires the State attribute to work, but no State exists in the Access-Request packet.");
 				REDEBUG("The RADIUS client is broken.  No amount of changing FreeRADIUS will fix the RADIUS client.");
@@ -915,7 +918,8 @@ eap_session_t *eap_session_continue(eap_packet_raw_t **eap_packet_p, rlm_eap_t c
 		request_data_add(request, NULL, REQUEST_DATA_EAP_SESSION, eap_session, true, true, true);
 	}
 
-	vp = fr_pair_find_by_num(request->packet->vps, 0, PW_USER_NAME, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+				       PW_USER_NAME, TAG_ANY);
 	if (!vp) {
 	       /*
 		*	NAS did not set the User-Name

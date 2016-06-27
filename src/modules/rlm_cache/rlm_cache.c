@@ -155,7 +155,8 @@ static rlm_rcode_t cache_merge(rlm_cache_t const *inst, REQUEST *request, rlm_ca
 
 	if (inst->config.stats) {
 		rad_assert(request->packet != NULL);
-		vp = fr_pair_find_by_num(request->packet->vps, 0, PW_CACHE_ENTRY_HITS, TAG_ANY);
+		vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_internal),
+					       PW_CACHE_ENTRY_HITS, TAG_ANY);
 		if (!vp) {
 			vp = fr_pair_afrom_child_num(request->packet, fr_dict_root(fr_dict_internal),
 						     PW_CACHE_ENTRY_HITS);
@@ -432,7 +433,8 @@ static rlm_rcode_t cache_insert(rlm_cache_t const *inst, REQUEST *request, rlm_c
 	/*
 	 *	Check to see if we need to merge the entry into the request
 	 */
-	vp = fr_pair_find_by_num(request->control, 0, PW_CACHE_MERGE_NEW, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+				       PW_CACHE_MERGE_NEW, TAG_ANY);
 	if (vp && (vp->vp_integer > 0)) merge = true;
 
 	if (merge) cache_merge(inst, request, c);
@@ -570,7 +572,8 @@ static rlm_rcode_t mod_cache_it(void *instance, UNUSED void *thread, REQUEST *re
 	 *	If Cache-Status-Only == yes, only return whether we found a
 	 *	valid cache entry
 	 */
-	vp = fr_pair_find_by_num(request->control, 0, PW_CACHE_STATUS_ONLY, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->control,
+				       fr_dict_root(fr_dict_internal), PW_CACHE_STATUS_ONLY, TAG_ANY);
 	if (vp && vp->vp_integer) {
 		RINDENT();
 		RDEBUG3("status-only: yes");
@@ -590,13 +593,16 @@ static rlm_rcode_t mod_cache_it(void *instance, UNUSED void *thread, REQUEST *re
 	/*
 	 *	Figure out what operation we're doing
 	 */
-	vp = fr_pair_find_by_num(request->control, 0, PW_CACHE_ALLOW_MERGE, TAG_ANY);
-	if (vp) merge = (bool)vp->vp_integer;
+	vp = fr_pair_find_by_child_num(request->control,
+				       fr_dict_root(fr_dict_internal), PW_CACHE_ALLOW_MERGE, TAG_ANY);
+	if (vp) merge = vp->vp_bool;
 
-	vp = fr_pair_find_by_num(request->control, 0, PW_CACHE_ALLOW_INSERT, TAG_ANY);
-	if (vp) insert = (bool)vp->vp_integer;
+	vp = fr_pair_find_by_child_num(request->control,
+				       fr_dict_root(fr_dict_internal), PW_CACHE_ALLOW_INSERT, TAG_ANY);
+	if (vp) insert = vp->vp_bool;
 
-	vp = fr_pair_find_by_num(request->control, 0, PW_CACHE_TTL, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->control,
+				       fr_dict_root(fr_dict_internal), PW_CACHE_TTL, TAG_ANY);
 	if (vp) {
 		if (vp->vp_signed == 0) {
 			expire = true;
@@ -764,7 +770,7 @@ finish:
 	for (vp = fr_pair_cursor_init(&cursor, &request->control);
 	     vp;
 	     vp = fr_pair_cursor_next(&cursor)) {
-		if (vp->da->vendor == 0) switch (vp->da->attr) {
+		if (fr_dict_parent_common(fr_dict_root(fr_dict_internal), vp->da, true)) switch (vp->da->attr) {
 		case PW_CACHE_TTL:
 		case PW_CACHE_STATUS_ONLY:
 		case PW_CACHE_ALLOW_MERGE:

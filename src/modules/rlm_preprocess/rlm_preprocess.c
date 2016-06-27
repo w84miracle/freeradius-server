@@ -67,7 +67,7 @@ static fr_dict_attr_t const *alvarion_vendor;
 static int fall_through(VALUE_PAIR *vp)
 {
 	VALUE_PAIR *tmp;
-	tmp = fr_pair_find_by_num(vp, 0, PW_FALL_THROUGH, TAG_ANY);
+	tmp = fr_pair_find_by_child_num(vp, fr_dict_root(fr_dict_internal), PW_FALL_THROUGH, TAG_ANY);
 
 	return tmp ? tmp->vp_integer : 0;
 }
@@ -244,7 +244,7 @@ static void rad_mangle(rlm_preprocess_t const *inst, REQUEST *request)
 	 *	If it isn't there, then we can't mangle the request.
 	 */
 	request_pairs = request->packet->vps;
-	namepair = fr_pair_find_by_num(request_pairs, 0, PW_USER_NAME, TAG_ANY);
+	namepair = fr_pair_find_by_child_num(request_pairs, fr_dict_root(fr_dict_radius), PW_USER_NAME, TAG_ANY);
 	if (!namepair || (namepair->vp_length == 0)) {
 		return;
 	}
@@ -285,8 +285,10 @@ static void rad_mangle(rlm_preprocess_t const *inst, REQUEST *request)
 	 *	Small check: if Framed-Protocol present but Service-Type
 	 *	is missing, add Service-Type = Framed-User.
 	 */
-	if (fr_pair_find_by_num(request_pairs, 0, PW_FRAMED_PROTOCOL, TAG_ANY) != NULL &&
-	    fr_pair_find_by_num(request_pairs, 0, PW_SERVICE_TYPE, TAG_ANY) == NULL) {
+	if (fr_pair_find_by_child_num(request_pairs, fr_dict_root(fr_dict_radius),
+				      PW_FRAMED_PROTOCOL, TAG_ANY) != NULL &&
+	    fr_pair_find_by_child_num(request_pairs, fr_dict_root(fr_dict_radius),
+	    			      PW_SERVICE_TYPE, TAG_ANY) == NULL) {
 		tmp = radius_pair_create(request->packet, &request->packet->vps, PW_SERVICE_TYPE, 0);
 		tmp->vp_integer = PW_FRAMED_USER;
 	}
@@ -361,7 +363,7 @@ static int hints_setup(PAIR_LIST *hints, REQUEST *request)
 	/*
 	 *	Check for valid input, zero length names not permitted
 	 */
-	name = (tmp = fr_pair_find_by_num(request_pairs, 0, PW_USER_NAME, TAG_ANY)) ?
+	name = (tmp = fr_pair_find_by_child_num(request_pairs, fr_dict_root(fr_dict_radius), PW_USER_NAME, TAG_ANY)) ?
 		tmp->vp_strvalue : NULL;
 	if (!name || name[0] == 0) {
 		/*
@@ -439,7 +441,8 @@ static int huntgroup_access(REQUEST *request, PAIR_LIST *huntgroups)
 			 *  We've matched the huntgroup, so add it in
 			 *  to the list of request pairs.
 			 */
-			vp = fr_pair_find_by_num(request_pairs, 0, PW_HUNTGROUP_NAME, TAG_ANY);
+			vp = fr_pair_find_by_child_num(request_pairs,
+						       fr_dict_root(fr_dict_internal), PW_HUNTGROUP_NAME, TAG_ANY);
 			if (!vp) {
 				vp = radius_pair_create(request->packet, &request->packet->vps, PW_HUNTGROUP_NAME, 0);
 				fr_pair_value_strcpy(vp, i->name);
@@ -462,7 +465,8 @@ static int add_nas_attr(REQUEST *request)
 
 	switch (request->packet->src_ipaddr.af) {
 	case AF_INET:
-		nas = fr_pair_find_by_num(request->packet->vps, 0, PW_NAS_IP_ADDRESS, TAG_ANY);
+		nas = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+						PW_NAS_IP_ADDRESS, TAG_ANY);
 		if (!nas) {
 			nas = radius_pair_create(request->packet, &request->packet->vps, PW_NAS_IP_ADDRESS, 0);
 			nas->vp_ipaddr = request->packet->src_ipaddr.ipaddr.ip4addr.s_addr;
@@ -470,7 +474,8 @@ static int add_nas_attr(REQUEST *request)
 		break;
 
 	case AF_INET6:
-		nas = fr_pair_find_by_num(request->packet->vps, 0, PW_NAS_IPV6_ADDRESS, TAG_ANY);
+		nas = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+						PW_NAS_IPV6_ADDRESS, TAG_ANY);
 		if (!nas) {
 			nas = radius_pair_create(request->packet, &request->packet->vps, PW_NAS_IPV6_ADDRESS, 0);
 			memcpy(&nas->vp_ipv6addr, &request->packet->src_ipaddr.ipaddr,
@@ -553,7 +558,8 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authorize(void *instance, UNUSED void *t
 		 *	in place, to go from Ascend's weird values to something
 		 *	approaching rationality.
 		 */
-		ascend_nasport_hack(fr_pair_find_by_num(request->packet->vps, 0, PW_NAS_PORT, TAG_ANY),
+		ascend_nasport_hack(fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+							      PW_NAS_PORT, TAG_ANY),
 				    inst->ascend_channels_per_line);
 	}
 
@@ -577,7 +583,8 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authorize(void *instance, UNUSED void *t
 	 *	Add an event timestamp. Means Event-Timestamp can be used
 	 *	consistently instead of one letter expansions.
 	 */
-	vp = fr_pair_find_by_num(request->packet->vps, 0, PW_EVENT_TIMESTAMP, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->packet->vps,
+				       fr_dict_root(fr_dict_radius), PW_EVENT_TIMESTAMP, TAG_ANY);
 	if (!vp) {
 		vp = radius_pair_create(request->packet, &request->packet->vps, PW_EVENT_TIMESTAMP, 0);
 		vp->vp_date = request->packet->timestamp.tv_sec;
@@ -600,8 +607,10 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authorize(void *instance, UNUSED void *t
 	 *      is PW_CHAP_CHALLENGE we need to add it so that other
 	 *	modules can use it as a normal attribute.
 	 */
-	if (fr_pair_find_by_num(request->packet->vps, 0, PW_CHAP_PASSWORD, TAG_ANY) &&
-	    fr_pair_find_by_num(request->packet->vps, 0, PW_CHAP_CHALLENGE, TAG_ANY) == NULL) {
+	if (fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+				      PW_CHAP_PASSWORD, TAG_ANY) &&
+	    fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+	    			      PW_CHAP_CHALLENGE, TAG_ANY) == NULL) {
 		vp = radius_pair_create(request->packet, &request->packet->vps, PW_CHAP_CHALLENGE, 0);
 		fr_pair_value_memcpy(vp, request->packet->vector, AUTH_VECTOR_LEN);
 	}
@@ -663,14 +672,16 @@ static rlm_rcode_t CC_HINT(nonnull) mod_preaccounting(void *instance, UNUSED voi
 	 *	the server can use it, rather than various error-prone
 	 *	manual calculations.
 	 */
-	vp = fr_pair_find_by_num(request->packet->vps, 0, PW_EVENT_TIMESTAMP, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+				       PW_EVENT_TIMESTAMP, TAG_ANY);
 	if (!vp) {
 		VALUE_PAIR *delay;
 
 		vp = radius_pair_create(request->packet, &request->packet->vps, PW_EVENT_TIMESTAMP, 0);
 		vp->vp_date = request->packet->timestamp.tv_sec;
 
-		delay = fr_pair_find_by_num(request->packet->vps, 0, PW_ACCT_DELAY_TIME, TAG_ANY);
+		delay = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+						  PW_ACCT_DELAY_TIME, TAG_ANY);
 		if (delay) {
 			if ((delay->vp_integer >= vp->vp_date) || (delay->vp_integer == UINT32_MAX)) {
 				RWARN("Ignoring invalid Acct-Delay-time of %u seconds", delay->vp_integer);

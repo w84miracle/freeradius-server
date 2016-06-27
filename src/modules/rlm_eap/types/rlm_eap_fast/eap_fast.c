@@ -616,8 +616,10 @@ static PW_CODE eap_fast_eap_payload(REQUEST *request, eap_session_t *eap_session
 	/*
 	 * Update other items in the REQUEST data structure.
 	 */
-	fake->username = fr_pair_find_by_num(fake->packet->vps, 0, PW_USER_NAME, TAG_ANY);
-	fake->password = fr_pair_find_by_num(fake->packet->vps, 0, PW_USER_PASSWORD, TAG_ANY);
+	fake->username = fr_pair_find_by_child_num(fake->packet->vps,
+						   fr_dict_root(fr_dict_radius), PW_USER_NAME, TAG_ANY);
+	fake->password = fr_pair_find_by_child_num(fake->packet->vps,
+						   fr_dict_root(fr_dict_radius), PW_USER_PASSWORD, TAG_ANY);
 
 	/*
 	 * No User-Name, try to create one from stored data.
@@ -628,7 +630,8 @@ static PW_CODE eap_fast_eap_payload(REQUEST *request, eap_session_t *eap_session
 		 * an EAP-Identity, and pull it out of there.
 		 */
 		if (!t->username) {
-			vp = fr_pair_find_by_num(fake->packet->vps, 0, PW_EAP_MESSAGE, TAG_ANY);
+			vp = fr_pair_find_by_child_num(fake->packet->vps,
+						       fr_dict_root(fr_dict_radius), PW_EAP_MESSAGE, TAG_ANY);
 			if (vp &&
 			    (vp->vp_length >= EAP_HEADER_LEN + 2) &&
 			    (vp->vp_strvalue[0] == PW_EAP_RESPONSE) &&
@@ -657,7 +660,8 @@ static PW_CODE eap_fast_eap_payload(REQUEST *request, eap_session_t *eap_session
 		if (t->username) {
 			vp = fr_pair_list_copy(fake->packet, t->username);
 			fr_pair_add(&fake->packet->vps, vp);
-			fake->username = fr_pair_find_by_num(fake->packet->vps, 0, PW_USER_NAME, TAG_ANY);
+			fake->username = fr_pair_find_by_child_num(fake->packet->vps,
+							     fr_dict_root(fr_dict_radius), PW_USER_NAME, TAG_ANY);
 		}
 	} /* else the request ALREADY had a User-Name */
 
@@ -696,7 +700,8 @@ static PW_CODE eap_fast_eap_payload(REQUEST *request, eap_session_t *eap_session
 	switch (fake->reply->code) {
 	case 0:			/* No reply code, must be proxied... */
 #ifdef WITH_PROXY
-		vp = fr_pair_find_by_num(fake->control, 0, PW_PROXY_TO_REALM, TAG_ANY);
+		vp = fr_pair_find_by_child_num(fake->control, fr_dict_root(fr_dict_internal),
+					       PW_PROXY_TO_REALM, TAG_ANY);
 		if (vp) {
 			int			ret;
 			eap_tunnel_data_t	*tunnel;

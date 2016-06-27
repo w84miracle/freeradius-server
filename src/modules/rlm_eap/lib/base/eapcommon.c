@@ -200,7 +200,7 @@ int eap_basic_compose(RADIUS_PACKET *packet, eap_packet_t *reply)
 	 *	Don't add a Message-Authenticator if it's already
 	 *	there.
 	 */
-	vp = fr_pair_find_by_num(packet->vps, 0, PW_MESSAGE_AUTHENTICATOR, TAG_ANY);
+	vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(fr_dict_radius), PW_MESSAGE_AUTHENTICATOR, TAG_ANY);
 	if (!vp) {
 		vp = fr_pair_afrom_child_num(packet, fr_dict_root(fr_dict_radius), PW_MESSAGE_AUTHENTICATOR);
 		vp->vp_length = AUTH_VECTOR_LEN;
@@ -297,7 +297,7 @@ eap_packet_raw_t *eap_vp2packet(TALLOC_CTX *ctx, VALUE_PAIR *vps)
 	/*
 	 *	Get only EAP-Message attribute list
 	 */
-	first = fr_pair_find_by_num(vps, 0, PW_EAP_MESSAGE, TAG_ANY);
+	first = fr_pair_find_by_child_num(vps, fr_dict_root(fr_dict_radius), PW_EAP_MESSAGE, TAG_ANY);
 	if (!first) {
 		fr_strerror_printf("EAP-Message not found");
 		return NULL;
@@ -414,7 +414,7 @@ rlm_rcode_t eap_virtual_server(REQUEST *request, REQUEST *fake,
 	rlm_rcode_t	rcode;
 	VALUE_PAIR	*vp;
 
-	vp = fr_pair_find_by_num(request->control, 0, PW_VIRTUAL_SERVER, TAG_ANY);
+	vp = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal), PW_VIRTUAL_SERVER, TAG_ANY);
 	fake->server = vp ? vp->vp_strvalue : virtual_server;
 
 	if (fake->server) {

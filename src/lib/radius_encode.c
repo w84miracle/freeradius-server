@@ -24,6 +24,7 @@
  */
 
 #include <freeradius-devel/libradius.h>
+#include <freeradius-devel/protocol/radius/dictionary.h>
 #include <freeradius-devel/md5.h>
 
 static unsigned int salt_offset = 0;
@@ -82,6 +83,9 @@ int fr_radius_encode_chap_password(uint8_t *output, RADIUS_PACKET *packet, int i
 	uint8_t		*ptr;
 	uint8_t		string[FR_MAX_STRING_LEN * 2 + 1];
 	VALUE_PAIR	*challenge;
+	fr_dict_t	*dict_radius;
+
+	dict_radius = fr_dict_by_protocol_num(PROTOCOL_RADIUS);
 
 	/*
 	 *	Sanity check the input parameters
@@ -108,7 +112,7 @@ int fr_radius_encode_chap_password(uint8_t *output, RADIUS_PACKET *packet, int i
 	 *	Use Chap-Challenge pair if present,
 	 *	Request Authenticator otherwise.
 	 */
-	challenge = fr_pair_find_by_num(packet->vps, 0, PW_CHAP_CHALLENGE, TAG_ANY);
+	challenge = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict_radius), PW_CHAP_CHALLENGE, TAG_ANY);
 	if (challenge) {
 		memcpy(ptr, challenge->vp_strvalue, challenge->vp_length);
 		i += challenge->vp_length;

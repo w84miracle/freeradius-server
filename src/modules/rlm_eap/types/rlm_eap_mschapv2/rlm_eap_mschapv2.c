@@ -553,7 +553,8 @@ packet_ready:
 		 *	in the user name, THEN discard the user name.
 		 */
 		if (inst->with_ntdomain_hack &&
-		    ((auth_challenge = fr_pair_find_by_num(request->packet->vps, 0, PW_USER_NAME, TAG_ANY)) != NULL) &&
+		    ((auth_challenge = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(dict_radius),
+		    						 PW_USER_NAME, TAG_ANY)) != NULL) &&
 		    ((username = memchr(auth_challenge->vp_octets, '\\', auth_challenge->vp_length)) != NULL)) {
 			/*
 			 *	Wipe out the NT domain.
@@ -658,13 +659,15 @@ static rlm_rcode_t mod_session_init(void *instance, eap_session_t *eap_session)
 
 	if (!rad_cond_assert(instance)) return RLM_MODULE_FAIL;
 
-	auth_challenge = fr_pair_find_by_num(request->control, VENDORPEC_MICROSOFT, PW_MSCHAP_CHALLENGE, TAG_ANY);
+	auth_challenge = fr_pair_find_by_child_num(request->control, vendor_microsoft,
+						   PW_MSCHAP_CHALLENGE, TAG_ANY);
 	if (auth_challenge && (auth_challenge->vp_length != MSCHAPV2_CHALLENGE_LEN)) {
 		RWDEBUG("control:MS-CHAP-Challenge is incorrect length.  Ignoring it.");
 		auth_challenge = NULL;
 	}
 
-	peer_challenge = fr_pair_find_by_num(request->control, 0, PW_MS_CHAP_PEER_CHALLENGE, TAG_ANY);
+	peer_challenge = fr_pair_find_by_child_num(request->control, vendor_microsoft,
+						   PW_MS_CHAP_PEER_CHALLENGE, TAG_ANY);
 	if (peer_challenge && (peer_challenge->vp_length != MSCHAPV2_CHALLENGE_LEN)) {
 		RWDEBUG("control:MS-CHAP-Peer-Challenge is incorrect length.  Ignoring it.");
 		peer_challenge = NULL;
@@ -673,7 +676,8 @@ static rlm_rcode_t mod_session_init(void *instance, eap_session_t *eap_session)
 	if (auth_challenge) {
 		created_auth_challenge = false;
 
-		peer_challenge = fr_pair_find_by_num(request->control, 0, PW_MS_CHAP_PEER_CHALLENGE, TAG_ANY);
+		peer_challenge = fr_pair_find_by_child_num(request->control, vendor_microsoft,
+							   PW_MS_CHAP_PEER_CHALLENGE, TAG_ANY);
 		if (peer_challenge && (peer_challenge->vp_length != MSCHAPV2_CHALLENGE_LEN)) {
 			RWDEBUG("control:MS-CHAP-Peer-Challenge is incorrect length.  Ignoring it.");
 			peer_challenge = NULL;

@@ -56,7 +56,8 @@ static void auth_message(char const *msg, REQUEST *request, int goodpass)
 	 * Get the correct username based on the configured value
 	 */
 	if (!log_stripped_names) {
-		username = fr_pair_find_by_num(request->packet->vps, 0, PW_USER_NAME, TAG_ANY);
+		username = fr_pair_find_by_child_num(request->packet->vps,
+						     fr_dict_root(dict_radius), PW_USER_NAME, TAG_ANY);
 	} else {
 		username = request->username;
 	}
@@ -77,7 +78,8 @@ static void auth_message(char const *msg, REQUEST *request, int goodpass)
 		if (!request->password) {
 			VALUE_PAIR *auth_type;
 
-			auth_type = fr_pair_find_by_num(request->control, 0, PW_AUTH_TYPE, TAG_ANY);
+			auth_type = fr_pair_find_by_child_num(request->control,
+							      fr_dict_root(fr_dict_internal), PW_AUTH_TYPE, TAG_ANY);
 			if (auth_type) {
 				snprintf(clean_password, sizeof(clean_password),
 					 "<via Auth-Type = %s>",
@@ -85,7 +87,8 @@ static void auth_message(char const *msg, REQUEST *request, int goodpass)
 			} else {
 				strcpy(clean_password, "<no User-Password attribute>");
 			}
-		} else if (fr_pair_find_by_num(request->packet->vps, 0, PW_CHAP_PASSWORD, TAG_ANY)) {
+		} else if (fr_pair_find_by_child_num(request->packet->vps,
+					       	     fr_dict_root(dict_radius), PW_CHAP_PASSWORD, TAG_ANY)) {
 			strcpy(clean_password, "<CHAP-Password>");
 		} else {
 			fr_snprint(clean_password, sizeof(clean_password),
@@ -362,8 +365,10 @@ static void auth_running(REQUEST *request, fr_state_action_t action)
 		/*
 		 *	Do various setups.
 		 */
-		request->username = fr_pair_find_by_num(request->packet->vps, 0, PW_USER_NAME, TAG_ANY);
-		request->password = fr_pair_find_by_num(request->packet->vps, 0, PW_USER_PASSWORD, TAG_ANY);
+		request->username = fr_pair_find_by_child_num(request->packet->vps,
+							      fr_dict_root(dict_radius), PW_USER_NAME, TAG_ANY);
+		request->password = fr_pair_find_by_child_num(request->packet->vps,
+							      fr_dict_root(dict_radius), PW_USER_PASSWORD, TAG_ANY);
 
 		/*
 		 *	Grab the VPS and data associated with the State attribute.
@@ -403,7 +408,9 @@ static void auth_running(REQUEST *request, fr_state_action_t action)
 		case RLM_MODULE_REJECT:
 		case RLM_MODULE_USERLOCK:
 		default:
-			if ((vp = fr_pair_find_by_num(request->packet->vps, 0, PW_MODULE_FAILURE_MESSAGE, TAG_ANY)) != NULL) {
+			if ((vp = fr_pair_find_by_child_num(request->packet->vps,
+							    fr_dict_root(fr_dict_internal), PW_MODULE_FAILURE_MESSAGE,
+							    TAG_ANY)) != NULL) {
 				char msg[FR_MAX_STRING_LEN + 16];
 
 				snprintf(msg, sizeof(msg), "Invalid user (%s)",
@@ -507,7 +514,8 @@ static void auth_running(REQUEST *request, fr_state_action_t action)
 			RDEBUG2("Failed to authenticate the user");
 			request->reply->code = PW_CODE_ACCESS_REJECT;
 
-			if ((vp = fr_pair_find_by_num(request->packet->vps, 0, PW_MODULE_FAILURE_MESSAGE, TAG_ANY)) != NULL){
+			if ((vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(dict_radius),
+							    PW_MODULE_FAILURE_MESSAGE, TAG_ANY)) != NULL){
 				char msg[FR_MAX_STRING_LEN+19];
 
 				snprintf(msg, sizeof(msg), "Login incorrect (%s)",
@@ -555,7 +563,8 @@ static void auth_running(REQUEST *request, fr_state_action_t action)
 		 *	authenticated, ook for Simultaneous-Use.  But
 		 *	only if we have a User-Name.
 		 */
-		vp = fr_pair_find_by_num(request->control, 0, PW_SIMULTANEOUS_USE, TAG_ANY);
+		vp = fr_pair_find_by_child_num(request->control,
+					       fr_dict_root(fr_dict_internal), PW_SIMULTANEOUS_USE, TAG_ANY);
 		if (vp && request->username) {
 			unlang = cf_section_sub_find_name2(request->server_cs, "process", "Simultaneous-Use");
 			if (!unlang) {
@@ -583,7 +592,9 @@ static void auth_running(REQUEST *request, fr_state_action_t action)
 				RDEBUG2("Simultaneous-Use checks failed.");
 				request->reply->code = PW_CODE_ACCESS_REJECT;
 
-				if ((vp = fr_pair_find_by_num(request->packet->vps, 0, PW_MODULE_FAILURE_MESSAGE, TAG_ANY)) != NULL){
+				if ((vp = fr_pair_find_by_child_num(request->packet->vps,
+								    fr_dict_root(fr_dict_internal),
+							            PW_MODULE_FAILURE_MESSAGE, TAG_ANY)) != NULL){
 					char msg[FR_MAX_STRING_LEN+19];
 
 					snprintf(msg, sizeof(msg), "Login limit exceeded (%s)",
@@ -606,7 +617,8 @@ static void auth_running(REQUEST *request, fr_state_action_t action)
 		/*
 		 *	Allow for over-ride of reply code.
 		 */
-		vp = fr_pair_find_by_num(request->reply->vps, 0, PW_PACKET_TYPE, TAG_ANY);
+		vp = fr_pair_find_by_child_num(request->reply->vps,
+					       fr_dict_root(fr_dict_internal), PW_PACKET_TYPE, TAG_ANY);
 		if (vp) {
 			if (vp->vp_integer == 256) {
 				request->reply->code = 0;
@@ -616,7 +628,9 @@ static void auth_running(REQUEST *request, fr_state_action_t action)
 		}
 
 		if (request->reply->code == PW_CODE_ACCESS_ACCEPT) {
-			if ((vp = fr_pair_find_by_num(request->packet->vps, 0, PW_MODULE_SUCCESS_MESSAGE, TAG_ANY)) != NULL){
+			if ((vp = fr_pair_find_by_child_num(request->packet->vps,
+							    fr_dict_root(fr_dict_internal),
+							    PW_MODULE_SUCCESS_MESSAGE, TAG_ANY)) != NULL){
 				char msg[FR_MAX_STRING_LEN+12];
 
 				snprintf(msg, sizeof(msg), "Login OK (%s)",
@@ -628,7 +642,7 @@ static void auth_running(REQUEST *request, fr_state_action_t action)
 		}
 
 	setup_send:
-		if (!da) da = fr_dict_attr_child_by_num(fr_dict_root(dict_radius), PW_PACKET_TYPE);
+		if (!da) da = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), PW_PACKET_TYPE);
 		rad_assert(da != NULL);
 
 		dv = fr_dict_enum_by_da(da, request->reply->code);
@@ -673,7 +687,7 @@ static void auth_running(REQUEST *request, fr_state_action_t action)
 			 *	the NAK section.
 			 */
 			if (request->reply->code != PW_CODE_ACCESS_REJECT) {
-				if (!da) da = fr_dict_attr_child_by_num(fr_dict_root(dict_radius), PW_PACKET_TYPE);
+				if (!da) da = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), PW_PACKET_TYPE);
 				rad_assert(da != NULL);
 
 				dv = fr_dict_enum_by_da(da, request->reply->code);
@@ -720,7 +734,8 @@ static void auth_running(REQUEST *request, fr_state_action_t action)
 		}
 
 		if (!request->reply->code) {
-			vp = fr_pair_find_by_num(request->control, 0, PW_AUTH_TYPE, TAG_ANY);
+			vp = fr_pair_find_by_child_num(request->control,
+						       fr_dict_root(fr_dict_internal), PW_AUTH_TYPE, TAG_ANY);
 			if (vp) {
 				if (vp->vp_integer == PW_AUTH_TYPE_VALUE_ACCEPT) {
 					request->reply->code = PW_CODE_ACCESS_ACCEPT;
@@ -806,7 +821,9 @@ static void auth_running(REQUEST *request, fr_state_action_t action)
 
 			delay = request->root->reject_delay;
 
-			vp = fr_pair_find_by_num(request->reply->vps, 0, PW_FREERADIUS_RESPONSE_DELAY, TAG_ANY);
+			vp = fr_pair_find_by_child_num(request->reply->vps,
+						       fr_dict_root(fr_dict_internal), PW_FREERADIUS_RESPONSE_DELAY,
+						       TAG_ANY);
 			if (vp) {
 				if (vp->vp_integer <= 10) {
 					delay.tv_sec = vp->vp_integer;
@@ -815,7 +832,9 @@ static void auth_running(REQUEST *request, fr_state_action_t action)
 				}
 				delay.tv_usec = 0;
 			} else {
-				vp = fr_pair_find_by_num(request->reply->vps, 0, PW_FREERADIUS_RESPONSE_DELAY_USEC, TAG_ANY);
+				vp = fr_pair_find_by_child_num(request->reply->vps,
+							       fr_dict_root(fr_dict_internal),
+							       PW_FREERADIUS_RESPONSE_DELAY_USEC, TAG_ANY);
 				if (vp) {
 					if (vp->vp_integer <= 10 * USEC) {
 						delay.tv_sec = vp->vp_integer / USEC;
@@ -1080,7 +1099,7 @@ static int auth_listen_bootstrap(CONF_SECTION *server_cs, UNUSED CONF_SECTION *l
 	CONF_SECTION *subcs;
 	fr_dict_attr_t const *da;
 
-	da = fr_dict_attr_child_by_num(fr_dict_root(dict_radius), PW_AUTH_TYPE);
+	da = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), PW_AUTH_TYPE);
 	if (!da) {
 		cf_log_err_cs(server_cs, "Failed finding dictionary definition for Auth-Type");
 		return -1;

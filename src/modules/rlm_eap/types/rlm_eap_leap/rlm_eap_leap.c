@@ -56,8 +56,13 @@ static rlm_rcode_t mod_process(UNUSED void *instance, eap_session_t *eap_session
 	 *	The password is never sent over the wire.
 	 *	Always get the configured password, for each user.
 	 */
-	password = fr_pair_find_by_num(eap_session->request->control, 0, PW_CLEARTEXT_PASSWORD, TAG_ANY);
-	if (!password) password = fr_pair_find_by_num(eap_session->request->control, 0, PW_NT_PASSWORD, TAG_ANY);
+	password = fr_pair_find_by_child_num(eap_session->request->control, fr_dict_root(fr_dict_internal),
+					     PW_CLEARTEXT_PASSWORD, TAG_ANY);
+	if (!password) {
+		password = fr_pair_find_by_child_num(eap_session->request->control, fr_dict_root(fr_dict_internal),
+						     PW_NT_PASSWORD, TAG_ANY);
+	}
+
 	if (!password) {
 		REDEBUG("No Cleartext-Password or NT-Password configured for this user");
 		talloc_free(packet);

@@ -128,7 +128,7 @@ static size_t sql_escape_for_xlat_func(REQUEST *request, char *out, size_t outle
 static sql_fall_through_t fall_through(VALUE_PAIR *vp)
 {
 	VALUE_PAIR *tmp;
-	tmp = fr_pair_find_by_num(vp, 0, PW_FALL_THROUGH, TAG_ANY);
+	tmp = fr_pair_find_by_child_num(vp, fr_dict_root(fr_dict_internal), PW_FALL_THROUGH, TAG_ANY);
 
 	return tmp ? tmp->vp_integer : FALL_THROUGH_DEFAULT;
 }
@@ -1450,7 +1450,8 @@ skipreply:
 		 *  Check for a default_profile or for a User-Profile.
 		 */
 		RDEBUG3("... falling-through to profile processing");
-		user_profile = fr_pair_find_by_num(request->control, 0, PW_USER_PROFILE, TAG_ANY);
+		user_profile = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+							 PW_USER_PROFILE, TAG_ANY);
 
 		char const *profile = user_profile ?
 				      user_profile->vp_strvalue :
@@ -1809,11 +1810,13 @@ static rlm_rcode_t mod_checksimul(void *instance, UNUSED void *thread, REQUEST *
 	 */
 	request->simul_count = 0;
 
-	if ((vp = fr_pair_find_by_num(request->packet->vps, 0, PW_FRAMED_IP_ADDRESS, TAG_ANY)) != NULL) {
+	if ((vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+					    PW_FRAMED_IP_ADDRESS, TAG_ANY)) != NULL) {
 		ipno = vp->vp_ipaddr;
 	}
 
-	if ((vp = fr_pair_find_by_num(request->packet->vps, 0, PW_CALLING_STATION_ID, TAG_ANY)) != NULL) {
+	if ((vp = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+					    PW_CALLING_STATION_ID, TAG_ANY)) != NULL) {
 		call_num = vp->vp_strvalue;
 	}
 

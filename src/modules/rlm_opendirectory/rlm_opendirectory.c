@@ -409,7 +409,8 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authorize(UNUSED void *instance, UNUSED 
 
 	if (uuid_is_null(guid_sacl) && uuid_is_null(guid_nasgroup)) {
 		RDEBUG("No access control groups, all users allowed");
-		if (fr_pair_find_by_num(request->control, 0, PW_AUTH_TYPE, TAG_ANY) == NULL) {
+		if (fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+					      PW_AUTH_TYPE, TAG_ANY) == NULL) {
 			pair_make_config("Auth-Type", kAuthType, T_OP_EQ);
 			RDEBUG("Setting Auth-Type = %s", kAuthType);
 		}
@@ -458,7 +459,8 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authorize(UNUSED void *instance, UNUSED 
 		}
 	}
 
-	if (fr_pair_find_by_num(request->control, 0, PW_AUTH_TYPE, TAG_ANY) == NULL) {
+	if (fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
+				      PW_AUTH_TYPE, TAG_ANY) == NULL) {
 		pair_make_config("Auth-Type", kAuthType, T_OP_EQ);
 		RDEBUG("Setting Auth-Type = %s", kAuthType);
 	}

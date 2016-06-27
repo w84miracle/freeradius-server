@@ -73,8 +73,10 @@ static rlm_rcode_t rlm_replicate_alloc(RADIUS_PACKET **out, REQUEST *request, pa
 	 *	For CHAP, create the CHAP-Challenge if it doesn't exist.
 	 */
 	if ((code == PW_CODE_ACCESS_REQUEST) &&
-	    (fr_pair_find_by_num(request->packet->vps, 0, PW_CHAP_PASSWORD, TAG_ANY) != NULL) &&
-	    (fr_pair_find_by_num(request->packet->vps, 0, PW_CHAP_CHALLENGE, TAG_ANY) == NULL)) {
+	    (fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+	    			       PW_CHAP_PASSWORD, TAG_ANY) != NULL) &&
+	    (fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
+	    			       PW_CHAP_CHALLENGE, TAG_ANY) == NULL)) {
 		vp = radius_pair_create(packet, &packet->vps, PW_CHAP_CHALLENGE, 0);
 		fr_pair_value_memcpy(vp, request->packet->vector, AUTH_VECTOR_LEN);
 	}
