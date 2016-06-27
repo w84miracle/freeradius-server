@@ -16,15 +16,19 @@
 
 /**
  * $Id$
+ *
  * @file rlm_eap_sim/eap_sim.h
  * @brief Declarations for EAP-SIM
  *
- * @author Arran Cudbard-Bell <a.cudbardb@freeradius.org>
+ * @author Arran Cudbard-Bell
  *
- * @copyright 2016 Arran Cudbard-Bell <a.cudbardb@freeradius.org>
  * @copyright 2016 The FreeRADIUS server project
+ * @copyright 2016 Arran Cudbard-Bell
  */
 RCSIDH(rlm_eap_sim_eap_sim_h, "$Id$")
+
+extern fr_dict_t *dict_sim;
+extern fr_dict_t *dict_aka;
 
 #include "sim_proto.h"
 

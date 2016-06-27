@@ -725,7 +725,7 @@ VALUE_PAIR *fr_pair_find_by_num(VALUE_PAIR *head, unsigned int vendor, unsigned 
 	VERIFY_LIST(head);
 
 	(void) fr_pair_cursor_init(&cursor, &head);
-	return fr_pair_cursor_next_by_num(&cursor, vendor, attr, tag);
+	return fr_pair_cursor_next_by_child_num(&cursor, vendor, attr, tag);
 }
 
 /** Find the pair with the matching attribute
@@ -861,7 +861,7 @@ int fr_pair_update_by_num(TALLOC_CTX *ctx, VALUE_PAIR **list,
 	VALUE_PAIR *vp;
 
 	(void)fr_pair_cursor_init(&cursor, list);
-	vp = fr_pair_cursor_next_by_num(&cursor, vendor, attr, tag);
+	vp = fr_pair_cursor_next_by_child_num(&cursor, vendor, attr, tag);
 	if (vp) {
 		VERIFY_VP(vp);
 		if (value_box_steal(vp, &vp->data, value) < 0) return -1;

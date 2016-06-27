@@ -59,7 +59,8 @@ static int digest_fix(REQUEST *request)
 	}
 
 	fr_pair_cursor_init(&cursor, &first);
-	while ((i = fr_pair_cursor_next_by_num(&cursor, 0, PW_DIGEST_ATTRIBUTES, TAG_ANY))) {
+	while ((i = fr_pair_cursor_next_by_child_num(&cursor, fr_dict_root(fr_dict_radius),
+						PW_DIGEST_ATTRIBUTES, TAG_ANY))) {
 		int length = i->vp_length;
 		int attrlen;
 		uint8_t const *p = i->vp_octets;
@@ -104,7 +105,7 @@ static int digest_fix(REQUEST *request)
 	 */
 	RDEBUG("Digest-Attributes look OK.  Converting them to something more useful");
 	fr_pair_cursor_first(&cursor);
-	while ((i = fr_pair_cursor_next_by_num(&cursor, 0, PW_DIGEST_ATTRIBUTES, TAG_ANY))) {
+	while ((i = fr_pair_cursor_next_by_child_num(&cursor, fr_dict_root(fr_dict_radius), PW_DIGEST_ATTRIBUTES, TAG_ANY))) {
 		int length = i->vp_length;
 		int attrlen;
 		uint8_t const *p = &i->vp_octets[0];

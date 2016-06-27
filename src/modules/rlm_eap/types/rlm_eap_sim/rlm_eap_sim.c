@@ -33,6 +33,9 @@ RCSID("$Id$")
 #include "eap_sim.h"
 #include "sim_proto.h"
 
+fr_dict_t *dict_sim;
+fr_dict_t *dict_aka;
+
 #include <freeradius-devel/rad_assert.h>
 
 #ifndef EAP_TLS_MPPE_KEY_LEN

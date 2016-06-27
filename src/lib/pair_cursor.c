@@ -187,59 +187,6 @@ void fr_pair_cursor_end(vp_cursor_t *cursor)
  * fr_pair_cursor_next_by_* functions will start the search from the previously
  * matched attribute.
  *
- * @param cursor to operate on.
- * @param attr number to match.
- * @param vendor number to match (0 for none vendor attribute).
- * @param tag to match. Either a tag number or TAG_ANY to match any tagged or
- *	  untagged attribute, TAG_NONE to match attributes without tags.
- * @return
- *	- The next matching #VALUE_PAIR.
- *	- NULL if no #VALUE_PAIR (s) match.
- */
-VALUE_PAIR *fr_pair_cursor_next_by_num(vp_cursor_t *cursor, unsigned int vendor, unsigned int attr, int8_t tag)
-{
-	VALUE_PAIR *i;
-
-	if (!cursor->first) return NULL;
-
-	if (!vendor) {
-		/*
-		 *	Find top-level attributes.
-		 */
-		for (i = cursor->found ? cursor->found->next : cursor->current;
-		     i != NULL;
-		     i = i->next) {
-			VERIFY_VP(i);
-			if (i->da->parent->flags.is_root &&
-			    (i->da->attr == attr) && (i->da->vendor == 0) &&
-			    (!i->da->flags.has_tag || TAG_EQ(tag, i->tag))) {
-				break;
-			}
-		}
-	} else {
-		for (i = cursor->found ? cursor->found->next : cursor->current;
-		     i != NULL;
-		     i = i->next) {
-			VERIFY_VP(i);
-			if ((i->da->parent->type == PW_TYPE_VENDOR) &&
-			    (i->da->attr == attr) && (i->da->vendor == vendor) &&
-			    (!i->da->flags.has_tag || TAG_EQ(tag, i->tag))) {
-				break;
-			}
-		}
-	}
-
-	return fr_pair_cursor_update(cursor, i);
-}
-
-/** Iterate over a collection of VALUE_PAIRs of a given type in the pairlist
- *
- * Find the next attribute of a given type. If no fr_pair_cursor_next_by_* function
- * has been called on a cursor before, or the previous call returned
- * NULL, the search will start with the current attribute. Subsequent calls to
- * fr_pair_cursor_next_by_* functions will start the search from the previously
- * matched attribute.
- *
  * @note If the attribute specified by attr is not a child of the parent, NULL will be returned.
  *
  * @param cursor	to operate on.
@@ -366,10 +313,6 @@ VALUE_PAIR *fr_pair_cursor_next(vp_cursor_t *cursor)
 		 */
 		cursor->next = cursor->current->next;
 
-		/*
-		 *	Next call to fr_pair_cursor_next_by_num will start from the current
-		 *	position in the list, not the last found instance.
-		 */
 		cursor->found = NULL;
 	}
 

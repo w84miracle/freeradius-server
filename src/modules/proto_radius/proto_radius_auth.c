@@ -422,7 +422,8 @@ static void auth_running(REQUEST *request, fr_state_action_t action)
 		 */
 		fr_pair_cursor_init(&cursor, &request->control);
 		auth_type = NULL;
-		while ((vp = fr_pair_cursor_next_by_num(&cursor, 0, PW_AUTH_TYPE, TAG_ANY)) != NULL) {
+		while ((vp = fr_pair_cursor_next_by_child_num(&cursor, fr_dict_root(fr_dict_internal),
+							      PW_AUTH_TYPE, TAG_ANY)) != NULL) {
 			if (!auth_type) {
 				auth_type = vp;
 				continue;

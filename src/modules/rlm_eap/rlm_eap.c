@@ -691,7 +691,7 @@ static rlm_rcode_t mod_post_proxy(void *instance, UNUSED void *thread, REQUEST *
 	size_t		len;
 	ssize_t		ret;
 	char		*p;
-	VALUE_PAIR	*vp;
+	VALUE_PAIR	*vp = NULL;
 	eap_session_t	*eap_session;
 	vp_cursor_t	cursor;
 	rlm_eap_t const	*inst = instance;
@@ -786,21 +786,31 @@ static rlm_rcode_t mod_post_proxy(void *instance, UNUSED void *thread, REQUEST *
 	 */
 	if (!request->proxy->reply) return RLM_MODULE_NOOP;
 
-	/*
-	 *	Hmm... there's got to be a better way to
-	 *	discover codes for vendor attributes.
-	 *
-	 *	This is vendor Cisco (9), Cisco-AVPair
-	 *	attribute (1)
-	 */
-	fr_pair_cursor_init(&cursor, &request->proxy->reply->vps);
-	while ((vp = fr_pair_cursor_next_by_num(&cursor, 9, 1, TAG_ANY))) {
+	{
+		fr_dict_attr_t const *vendor = fr_dict_vendor_attr_by_num(fr_dict_radius, PW_VENDOR_SPECIFIC, 9);
+
 		/*
-		 *	If it's "leap:session-key", then stop.
-		 *
-		 *	The format is VERY specific!
+		 *	No guarantees vendor is defined.
 		 */
-		if (strncasecmp(vp->vp_strvalue, "leap:session-key=", 17) == 0) break;
+		if (vendor) {
+			/*
+			 *	Hmm... there's got to be a better way to
+			 *	discover codes for vendor attributes.
+			 *
+			 *	This is vendor Cisco (9), Cisco-AVPair
+			 *	attribute (1)
+			 */
+			for (vp = fr_pair_cursor_init(&cursor, &request->proxy->reply->vps);
+			     vp;
+			     vp = fr_pair_cursor_next_by_child_num(&cursor, vendor, 1, TAG_ANY)) {
+				/*
+				 *	If it's "leap:session-key", then stop.
+				 *
+				 *	The format is VERY specific!
+				 */
+				if (strncasecmp(vp->vp_strvalue, "leap:session-key=", 17) == 0) break;
+			}
+		}
 	}
 
 	/*

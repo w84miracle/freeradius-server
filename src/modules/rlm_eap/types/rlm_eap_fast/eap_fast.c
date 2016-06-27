@@ -562,7 +562,8 @@ static rlm_rcode_t CC_HINT(nonnull) process_reply(NDEBUG_UNUSED eap_session_t *e
 		 */
 		(void) fr_pair_cursor_init(&cursor, &reply->vps);
 
-		while ((vp = fr_pair_cursor_next_by_num(&cursor, 0, PW_EAP_MESSAGE, TAG_ANY)) != NULL) {
+		while ((vp = fr_pair_cursor_next_by_child_num(&cursor, fr_dict_root(fr_dict_radius),
+							      PW_EAP_MESSAGE, TAG_ANY)) != NULL) {
 			eap_fast_tlv_append(tls_session, EAP_FAST_TLV_EAP_PAYLOAD, true, vp->vp_length, vp->vp_octets);
 		}
 

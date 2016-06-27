@@ -2543,7 +2543,8 @@ int main(int argc, char *argv[])
 		}
 
 		fr_pair_cursor_init(&cursor, &conf->filter_request_vps);
-		type = fr_pair_cursor_next_by_num(&cursor, 0, PW_PACKET_TYPE, TAG_ANY);
+		type = fr_pair_cursor_next_by_child_num(&cursor, fr_dict_root(dict),
+						   PW_PACKET_TYPE, TAG_ANY);
 		if (type) {
 			fr_pair_cursor_remove(&cursor);
 			conf->filter_request_code = type->vp_integer;
@@ -2560,7 +2561,8 @@ int main(int argc, char *argv[])
 		}
 
 		fr_pair_cursor_init(&cursor, &conf->filter_response_vps);
-		type = fr_pair_cursor_next_by_num(&cursor, 0, PW_PACKET_TYPE, TAG_ANY);
+		type = fr_pair_cursor_next_by_child_num(&cursor, fr_dict_root(dict),
+						   PW_PACKET_TYPE, TAG_ANY);
 		if (type) {
 			fr_pair_cursor_remove(&cursor);
 			conf->filter_response_code = type->vp_integer;

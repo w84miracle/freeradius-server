@@ -271,7 +271,7 @@ chbind_packet_t *eap_chbind_vp2packet(TALLOC_CTX *ctx, VALUE_PAIR *vps)
 	length = 0;
 	for (vp =fr_pair_cursor_init(&cursor, &first);
 	     vp != NULL;
-	     vp = fr_pair_cursor_next_by_num(&cursor, VENDORPEC_UKERNA, PW_UKERNA_CHBIND, TAG_ANY)) {
+	     vp = fr_pair_cursor_next_by_child_num(&cursor, vendor, PW_UKERNA_CHBIND, TAG_ANY)) {
 		length += vp->vp_length;
 	}
 
@@ -292,7 +292,7 @@ chbind_packet_t *eap_chbind_vp2packet(TALLOC_CTX *ctx, VALUE_PAIR *vps)
 	packet = (chbind_packet_t *) ptr;
 	for (vp = fr_pair_cursor_init(&cursor, &first);
 	     vp != NULL;
-	     vp = fr_pair_cursor_next_by_num(&cursor, VENDORPEC_UKERNA, PW_UKERNA_CHBIND, TAG_ANY)) {
+	     vp = fr_pair_cursor_next_by_child_num(&cursor, vendor, PW_UKERNA_CHBIND, TAG_ANY)) {
 		memcpy(ptr, vp->vp_octets, vp->vp_length);
 		ptr += vp->vp_length;
 	}
@@ -315,6 +315,7 @@ VALUE_PAIR *eap_chbind_packet2vp(REQUEST *request, chbind_packet_t *packet)
 
 	vp = fr_pair_afrom_num(request->packet, VENDORPEC_UKERNA, PW_UKERNA_CHBIND);
 	if (!vp) return NULL;
+
 	fr_pair_value_memcpy(vp, (uint8_t *) packet, talloc_array_length((uint8_t *)packet));
 
 	return vp;
