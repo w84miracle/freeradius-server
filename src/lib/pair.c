@@ -1553,18 +1553,22 @@ VALUE_PAIR *fr_pair_list_copy(TALLOC_CTX *ctx, VALUE_PAIR *from)
  *
  * @param[in] ctx for talloc
  * @param[in] from whence to copy #VALUE_PAIR.
+ * @param[in] parent of attribute to match.
  * @param[in] attr to match, if 0 input list will not be filtered by attr.
- * @param[in] vendor to match.
  * @param[in] tag to match, #TAG_ANY matches any tag, #TAG_NONE matches tagless VPs.
  * @return the head of the new #VALUE_PAIR list or NULL on error.
  */
-VALUE_PAIR *fr_pair_list_copy_by_num(TALLOC_CTX *ctx, VALUE_PAIR *from,
-				     unsigned int vendor, unsigned int attr,
-				     int8_t tag)
+VALUE_PAIR *fr_pair_list_copy_by_child_num(TALLOC_CTX *ctx, VALUE_PAIR *from,
+				     fr_dict_attr_t const *parent, unsigned int attr, int8_t tag)
 {
 	vp_cursor_t src, dst;
 
 	VALUE_PAIR *out = NULL, *vp;
+
+	fr_dict_attr_t const *da;
+
+	da = fr_dict_attr_child_by_num(parent, attr);
+	if (!da) return NULL;
 
 	fr_pair_cursor_init(&dst, &out);
 	for (vp = fr_pair_cursor_init(&src, &from);
@@ -1580,7 +1584,7 @@ VALUE_PAIR *fr_pair_list_copy_by_num(TALLOC_CTX *ctx, VALUE_PAIR *from,
 		 *	Attr/vendor of 0 means "move them all".
 		 *	It's better than "fr_pair_copy(foo,bar);bar=NULL"
 		 */
-		if ((attr == 0) && (vendor == 0)) {
+		if ((attr == 0) && (parent == NULL)) {
 			goto do_copy;
 		}
 
@@ -1588,7 +1592,7 @@ VALUE_PAIR *fr_pair_list_copy_by_num(TALLOC_CTX *ctx, VALUE_PAIR *from,
 		 *	vendor=0, attr = PW_VENDOR_SPECIFIC means
 		 *	"match any vendor attribute".
 		 */
-		if ((vendor == 0) && (attr == PW_VENDOR_SPECIFIC)) {
+		if ((parent == NULL) && (attr == PW_VENDOR_SPECIFIC)) {
 			/*
 			 *	It's a VSA: copy it over.
 			 */
@@ -1605,17 +1609,7 @@ VALUE_PAIR *fr_pair_list_copy_by_num(TALLOC_CTX *ctx, VALUE_PAIR *from,
 			continue;
 		}
 
-		if (!vendor) {
-			if (!vp->da->parent->flags.is_root ||
-			    (vp->da->attr != attr) || (vp->da->vendor != 0)) {
-				continue;
-			}
-		} else {
-			if ((vp->da->parent->type != PW_TYPE_VENDOR) ||
-			    (vp->da->attr != attr) || (vp->da->vendor != vendor)) {
-				continue;
-			}
-		}
+		if (vp->da != da) continue;
 
 	do_copy:
 		vp = fr_pair_copy(ctx, vp);

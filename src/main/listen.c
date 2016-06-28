@@ -2173,7 +2173,8 @@ rlm_rcode_t rad_coa_recv(REQUEST *request)
 	 *	Copy State from the request to the reply.
 	 *	See RFC 5176 Section 3.3.
 	 */
-	vp = fr_pair_list_copy_by_num(request->reply, request->packet->vps, 0, PW_STATE, TAG_ANY);
+	vp = fr_pair_list_copy_by_child_num(request->reply, request->packet->vps, fr_dict_root(fr_dict_radius),
+				      PW_STATE, TAG_ANY);
 	if (vp) fr_pair_add(&request->reply->vps, vp);
 
 	/*

@@ -1183,8 +1183,8 @@ static void request_finish(REQUEST *request, fr_state_action_t action)
 	 */
 	else if (request->packet->code == PW_CODE_ACCESS_REQUEST) {
 		if (request->reply->code == 0) {
-			vp = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
-						       PW_AUTH_TYPE, TAG_ANY);
+			vp = fr_pair_find_by_child_num(request->control,
+						       fr_dict_root(fr_dict_internal), PW_AUTH_TYPE, TAG_ANY);
 			if (!vp || (vp->vp_integer != 5)) {
 				RDEBUG2("There was no response configured: "
 					"rejecting request");
@@ -1197,18 +1197,21 @@ static void request_finish(REQUEST *request, fr_state_action_t action)
 	/*
 	 *	Copy Proxy-State from the request to the reply.
 	 */
-	vp = fr_pair_list_copy_by_num(request->reply, request->packet->vps, 0, PW_PROXY_STATE, TAG_ANY);
+	vp = fr_pair_list_copy_by_child_num(request->reply, request->packet->vps,
+				      fr_dict_root(fr_dict_radius), PW_PROXY_STATE, TAG_ANY);
 	if (vp) fr_pair_add(&request->reply->vps, vp);
 
 	switch (request->reply->code) {
 	case PW_CODE_ACCESS_ACCEPT:
 		rad_postauth(request);
 		break;
+
 	case PW_CODE_ACCESS_CHALLENGE:
 		fr_pair_delete_by_num(&request->control, 0, PW_POST_AUTH_TYPE, TAG_ANY);
 		vp = pair_make_config("Post-Auth-Type", "Challenge", T_OP_SET);
 		if (vp) rad_postauth(request);
 		break;
+
 	default:
 		break;
 	}
