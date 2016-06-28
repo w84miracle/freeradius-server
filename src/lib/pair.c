@@ -2,6 +2,7 @@
  * pair.c	Functions to handle VALUE_PAIRs
  *
  * Version:	$Id$
+ * Version:	$Id$
  *
  *   This library is free software; you can redistribute it and/or
  *   modify it under the terms of the GNU Lesser General Public
@@ -782,30 +783,30 @@ void fr_pair_replace(VALUE_PAIR **head, VALUE_PAIR *replace)
  *
  * @param[in] ctx to allocate new #VALUE_PAIR in.
  * @param[in,out] list in search and insert into it.
+ * @param[in] parent of attribute to update.
  * @param[in] attr Number of attribute to update.
- * @param[in] vendor of attribute to update.
  * @param[in] tag of attribute to update.
  * @param[in] value to set.
  * @return
  *	- 0 on success.
  *	- -1 on failure.
  */
-int fr_pair_update_by_num(TALLOC_CTX *ctx, VALUE_PAIR **list,
-			  unsigned int vendor, unsigned int attr, int8_t tag,
-			  value_box_t *value)
+int fr_pair_update_by_child_num(TALLOC_CTX *ctx, VALUE_PAIR **list,
+			  	fr_dict_attr_t const *parent, unsigned int attr, int8_t tag,
+			  	value_box_t *value)
 {
 	vp_cursor_t cursor;
 	VALUE_PAIR *vp;
 
 	(void)fr_pair_cursor_init(&cursor, list);
-	vp = fr_pair_cursor_next_by_child_num(&cursor, vendor, attr, tag);
+	vp = fr_pair_cursor_next_by_child_num(&cursor, parent, attr, tag);
 	if (vp) {
 		VERIFY_VP(vp);
 		if (value_box_steal(vp, &vp->data, value) < 0) return -1;
 		return 0;
 	}
 
-	vp = fr_pair_afrom_child_num(ctx, vendor, attr);
+	vp = fr_pair_afrom_child_num(ctx, parent, attr);
 	if (!vp) return -1;
 
 	vp->tag = tag;
