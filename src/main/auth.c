@@ -388,8 +388,8 @@ rlm_rcode_t rad_authenticate(REQUEST *request)
 		 */
 		case PW_CODE_ACCESS_ACCEPT:
 			tmp = radius_pair_create(request,
-						&request->control,
-						PW_AUTH_TYPE, 0);
+						 &request->control,
+						 fr_dict_root(fr_dict_internal), PW_AUTH_TYPE);
 			if (tmp) tmp->vp_integer = PW_AUTH_TYPE_VALUE_ACCEPT;
 			rcode = RLM_MODULE_OK;
 			goto authenticate;

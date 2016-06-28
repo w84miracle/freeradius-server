@@ -66,7 +66,8 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authorize(UNUSED void *instance, UNUSED 
 		vp = fr_pair_find_by_child_num(request->reply->vps, fr_dict_root(fr_dict_radius),
 					       PW_SESSION_TIMEOUT, TAG_ANY);
 		if (!vp) {
-			vp = radius_pair_create(request->reply, &request->reply->vps, PW_SESSION_TIMEOUT, 0);
+			vp = radius_pair_create(request->reply, &request->reply->vps,
+						fr_dict_root(fr_dict_radius), PW_SESSION_TIMEOUT);
 			vp->vp_date = (uint32_t) (((time_t) check_item->vp_date) - request->packet->timestamp.tv_sec);
 		} else if (vp->vp_date > ((uint32_t) (((time_t) check_item->vp_date) - request->packet->timestamp.tv_sec))) {
 			vp->vp_date = (uint32_t) (((time_t) check_item->vp_date) - request->packet->timestamp.tv_sec);

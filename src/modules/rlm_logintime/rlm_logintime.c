@@ -182,7 +182,8 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authorize(void *instance, UNUSED void *t
 			timeout->vp_integer = left;
 		}
 	} else {
-		timeout = radius_pair_create(request->reply, &request->reply->vps, PW_SESSION_TIMEOUT, 0);
+		timeout = radius_pair_create(request->reply, &request->reply->vps,
+					     fr_dict_root(fr_dict_radius), PW_SESSION_TIMEOUT);
 		timeout->vp_integer = left;
 	}
 

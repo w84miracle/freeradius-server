@@ -245,8 +245,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 		 */
 		vp = fr_pair_find_by_child_num(request->reply->vps, vendor_wimax, 10, TAG_ANY);
 		if (!vp) {
-			vp = radius_pair_create(request->reply, &request->reply->vps,
-					       10, VENDORPEC_WIMAX);
+			vp = radius_pair_create(request->reply, &request->reply->vps, vendor_wimax, 10);
 		}
 		if (!vp) {
 			RWDEBUG("Failed creating WiMAX-MN-hHA-MIP4-Key");
@@ -259,8 +258,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 		 */
 		vp = fr_pair_find_by_child_num(request->reply->vps, vendor_wimax, 11, TAG_ANY);
 		if (!vp) {
-			vp = radius_pair_create(request->reply, &request->reply->vps,
-					       11, VENDORPEC_WIMAX);
+			vp = radius_pair_create(request->reply, &request->reply->vps, vendor_wimax, 11);
 		}
 		if (!vp) {
 			RWDEBUG("Failed creating WiMAX-MN-hHA-MIP4-SPI");
@@ -295,8 +293,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 		 */
 		vp = fr_pair_find_by_child_num(request->reply->vps, vendor_wimax, 10, TAG_ANY);
 		if (!vp) {
-			vp = radius_pair_create(request->reply, &request->reply->vps,
-					       10, VENDORPEC_WIMAX);
+			vp = radius_pair_create(request->reply, &request->reply->vps, vendor_wimax, 10);
 		}
 		if (!vp) {
 			RWDEBUG("Failed creating WiMAX-MN-hHA-MIP4-Key");
@@ -309,8 +306,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 		 */
 		vp = fr_pair_find_by_child_num(request->reply->vps, vendor_wimax, 11, TAG_ANY);
 		if (!vp) {
-			vp = radius_pair_create(request->reply, &request->reply->vps,
-					       11, VENDORPEC_WIMAX);
+			vp = radius_pair_create(request->reply, &request->reply->vps, vendor_wimax, 11);
 		}
 		if (!vp) {
 			RWDEBUG("Failed creating WiMAX-MN-hHA-MIP4-SPI");
@@ -345,8 +341,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 		 */
 		vp = fr_pair_find_by_child_num(request->reply->vps, vendor_wimax, 12, TAG_ANY);
 		if (!vp) {
-			vp = radius_pair_create(request->reply, &request->reply->vps,
-					       12, VENDORPEC_WIMAX);
+			vp = radius_pair_create(request->reply, &request->reply->vps, vendor_wimax, 12);
 		}
 		if (!vp) {
 			RWDEBUG("Failed creating WiMAX-MN-hHA-MIP6-Key");
@@ -359,8 +354,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 		 */
 		vp = fr_pair_find_by_child_num(request->reply->vps, vendor_wimax, 13, TAG_ANY);
 		if (!vp) {
-			vp = radius_pair_create(request->reply, &request->reply->vps,
-					       13, VENDORPEC_WIMAX);
+			vp = radius_pair_create(request->reply, &request->reply->vps, vendor_wimax, 13);
 		}
 		if (!vp) {
 			RWDEBUG("Failed creating WiMAX-MN-hHA-MIP6-SPI");
@@ -396,7 +390,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 	if (fa_rk) {
 		vp = fr_pair_find_by_child_num(request->reply->vps, vendor_wimax, 61, TAG_ANY);
 		if (!vp) {
-			vp = radius_pair_create(request->reply, &request->reply->vps, 61, VENDORPEC_WIMAX);
+			vp = radius_pair_create(request->reply, &request->reply->vps, vendor_wimax, 61);
 		}
 		if (!vp) {
 			RWDEBUG("Failed creating WiMAX-FA-RK-SPI");

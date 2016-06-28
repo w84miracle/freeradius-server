@@ -1004,7 +1004,8 @@ int main(int argc, char *argv[])
 	/*
 	 *	Update the list with the response type.
 	 */
-	vp = radius_pair_create(request->reply, &request->reply->vps, PW_RESPONSE_PACKET_TYPE, 0);
+	vp = radius_pair_create(request->reply, &request->reply->vps,
+				fr_dict_root(fr_dict_internal), PW_RESPONSE_PACKET_TYPE);
 	vp->vp_integer = request->reply->code;
 
 	{

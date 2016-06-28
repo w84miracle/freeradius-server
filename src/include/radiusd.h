@@ -561,7 +561,8 @@ int radius_callback_compare(REQUEST *request, VALUE_PAIR *req,
 			    VALUE_PAIR *check, VALUE_PAIR *check_pairs,
 			    VALUE_PAIR **reply_pairs);
 int radius_find_compare(fr_dict_attr_t const *attribute);
-VALUE_PAIR	*radius_pair_create(TALLOC_CTX *ctx, VALUE_PAIR **vps, unsigned int attribute, unsigned int vendor);
+VALUE_PAIR	*radius_pair_create(TALLOC_CTX *ctx, VALUE_PAIR **vps,
+				    fr_dict_attr_t const *parent, unsigned int vendor);
 
 void module_failure_msg(REQUEST *request, char const *fmt, ...) CC_HINT(format (printf, 2, 3));
 void vmodule_failure_msg(REQUEST *request, char const *fmt, va_list ap) CC_HINT(format (printf, 2, 0));

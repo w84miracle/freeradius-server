@@ -512,7 +512,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authorize(void *instance, UNUSED void *t
 
 	if (inst->auth_type) {
 		vp = radius_pair_create(request, &request->control,
-				       PW_AUTH_TYPE, 0);
+				        fr_dict_root(fr_dict_internal), PW_AUTH_TYPE);
 		vp->vp_integer = inst->auth_type;
 	}
 

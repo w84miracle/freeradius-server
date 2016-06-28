@@ -702,16 +702,16 @@ int xlat_eval_do(REQUEST *request, VALUE_PAIR *vp)
  * @param[in] ctx for talloc
  * @param[out] vps List to add new #VALUE_PAIR to, if NULL will just
  *	return #VALUE_PAIR.
- * @param[in] attribute number.
- * @param[in] vendor number.
+ * @param[in] parent number.
+ * @param[in] attr number.
  * @return a new #VALUE_PAIR or causes server to exit on error.
  */
 VALUE_PAIR *radius_pair_create(TALLOC_CTX *ctx, VALUE_PAIR **vps,
-			      unsigned int attribute, unsigned int vendor)
+			       fr_dict_attr_t const *parent, unsigned int attr)
 {
 	VALUE_PAIR *vp;
 
-	vp = fr_pair_afrom_child_num(ctx, vendor, attribute);
+	vp = fr_pair_afrom_child_num(ctx, parent, attr);
 	if (!vp) {
 		ERROR("No memory!");
 		rad_assert("No memory" == NULL);

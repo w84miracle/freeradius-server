@@ -1894,8 +1894,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authenticate(void *instance, UNUSED void
 		 *	continue with the authentication.
 		 */
 		response = radius_pair_create(request->packet, &request->packet->vps,
-					PW_MSCHAP2_RESPONSE,
-					VENDORPEC_MICROSOFT);
+					      vendor_microsoft, PW_MSCHAP2_RESPONSE);
 		p = talloc_array(response, uint8_t, 50);
 
 		/* ident & flags */

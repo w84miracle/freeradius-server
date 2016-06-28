@@ -289,7 +289,8 @@ static void rad_mangle(rlm_preprocess_t const *inst, REQUEST *request)
 				      PW_FRAMED_PROTOCOL, TAG_ANY) != NULL &&
 	    fr_pair_find_by_child_num(request_pairs, fr_dict_root(fr_dict_radius),
 	    			      PW_SERVICE_TYPE, TAG_ANY) == NULL) {
-		tmp = radius_pair_create(request->packet, &request->packet->vps, PW_SERVICE_TYPE, 0);
+		tmp = radius_pair_create(request->packet, &request->packet->vps, fr_dict_root(fr_dict_radius),
+					 PW_SERVICE_TYPE);
 		tmp->vp_integer = PW_FRAMED_USER;
 	}
 
@@ -444,7 +445,8 @@ static int huntgroup_access(REQUEST *request, PAIR_LIST *huntgroups)
 			vp = fr_pair_find_by_child_num(request_pairs,
 						       fr_dict_root(fr_dict_internal), PW_HUNTGROUP_NAME, TAG_ANY);
 			if (!vp) {
-				vp = radius_pair_create(request->packet, &request->packet->vps, PW_HUNTGROUP_NAME, 0);
+				vp = radius_pair_create(request->packet, &request->packet->vps,
+							fr_dict_root(fr_dict_internal), PW_HUNTGROUP_NAME);
 				fr_pair_value_strcpy(vp, i->name);
 			}
 			r = RLM_MODULE_OK;
@@ -468,7 +470,8 @@ static int add_nas_attr(REQUEST *request)
 		nas = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
 						PW_NAS_IP_ADDRESS, TAG_ANY);
 		if (!nas) {
-			nas = radius_pair_create(request->packet, &request->packet->vps, PW_NAS_IP_ADDRESS, 0);
+			nas = radius_pair_create(request->packet, &request->packet->vps,
+						 fr_dict_root(fr_dict_radius), PW_NAS_IP_ADDRESS);
 			nas->vp_ipaddr = request->packet->src_ipaddr.ipaddr.ip4addr.s_addr;
 		}
 		break;
@@ -477,7 +480,8 @@ static int add_nas_attr(REQUEST *request)
 		nas = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
 						PW_NAS_IPV6_ADDRESS, TAG_ANY);
 		if (!nas) {
-			nas = radius_pair_create(request->packet, &request->packet->vps, PW_NAS_IPV6_ADDRESS, 0);
+			nas = radius_pair_create(request->packet, &request->packet->vps,
+						 fr_dict_root(fr_dict_radius), PW_NAS_IPV6_ADDRESS);
 			memcpy(&nas->vp_ipv6addr, &request->packet->src_ipaddr.ipaddr,
 			       sizeof(request->packet->src_ipaddr.ipaddr));
 		}
@@ -586,7 +590,8 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authorize(void *instance, UNUSED void *t
 	vp = fr_pair_find_by_child_num(request->packet->vps,
 				       fr_dict_root(fr_dict_radius), PW_EVENT_TIMESTAMP, TAG_ANY);
 	if (!vp) {
-		vp = radius_pair_create(request->packet, &request->packet->vps, PW_EVENT_TIMESTAMP, 0);
+		vp = radius_pair_create(request->packet, &request->packet->vps,
+					fr_dict_root(fr_dict_radius), PW_EVENT_TIMESTAMP);
 		vp->vp_date = request->packet->timestamp.tv_sec;
 	}
 
@@ -611,7 +616,8 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authorize(void *instance, UNUSED void *t
 				      PW_CHAP_PASSWORD, TAG_ANY) &&
 	    fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),
 	    			      PW_CHAP_CHALLENGE, TAG_ANY) == NULL) {
-		vp = radius_pair_create(request->packet, &request->packet->vps, PW_CHAP_CHALLENGE, 0);
+		vp = radius_pair_create(request->packet, &request->packet->vps,
+					fr_dict_root(fr_dict_radius), PW_CHAP_CHALLENGE);
 		fr_pair_value_memcpy(vp, request->packet->vector, AUTH_VECTOR_LEN);
 	}
 
@@ -677,7 +683,8 @@ static rlm_rcode_t CC_HINT(nonnull) mod_preaccounting(void *instance, UNUSED voi
 	if (!vp) {
 		VALUE_PAIR *delay;
 
-		vp = radius_pair_create(request->packet, &request->packet->vps, PW_EVENT_TIMESTAMP, 0);
+		vp = radius_pair_create(request->packet, &request->packet->vps,
+					fr_dict_root(fr_dict_radius), PW_EVENT_TIMESTAMP);
 		vp->vp_date = request->packet->timestamp.tv_sec;
 
 		delay = fr_pair_find_by_child_num(request->packet->vps, fr_dict_root(fr_dict_radius),

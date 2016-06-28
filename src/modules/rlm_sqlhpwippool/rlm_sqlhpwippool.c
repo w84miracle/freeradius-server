@@ -584,7 +584,7 @@ end_gid:
 	}
 
 	/* add IP address to reply packet */
-	vp = radius_pair_create(request->reply, &request->reply->vps, PW_FRAMED_IP_ADDRESS, 0);
+	vp = radius_pair_create(request->reply, &request->reply->vps, fr_dict_root(dict_radius), PW_FRAMED_IP_ADDRESS);
 	vp->vp_ipaddr = ip.s_addr;
 
 	RDEBUG2("Returning %s", inet_ntoa(ip));

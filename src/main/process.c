@@ -2294,7 +2294,8 @@ static int process_proxy_reply(REQUEST *request, RADIUS_PACKET *reply)
 	 */
 	if (!vp && reply) {
 		fr_dict_enum_t *dval = NULL;
-		fr_dict_attr_t const *da = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), PW_POST_PROXY_TYPE);
+		fr_dict_attr_t const *da = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal),
+								     PW_POST_PROXY_TYPE);
 
 		switch (reply->code) {
 		case PW_CODE_ACCESS_REJECT:
@@ -2303,7 +2304,8 @@ static int process_proxy_reply(REQUEST *request, RADIUS_PACKET *reply)
 			dval = fr_dict_enum_by_name(da, fr_packet_codes[reply->code]);
 
 			if (dval) {
-				vp = radius_pair_create(request, &request->control, PW_POST_PROXY_TYPE, 0);
+				vp = radius_pair_create(request, &request->control,
+							fr_dict_root(fr_dict_internal), PW_POST_PROXY_TYPE);
 				vp->vp_integer = dval->value;
 			}
 			break;
@@ -2573,7 +2575,7 @@ static int setup_post_proxy_fail(REQUEST *request)
 
 	vp = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal), PW_POST_PROXY_TYPE, TAG_ANY);
 	if (!vp) vp = radius_pair_create(request, &request->control,
-					PW_POST_PROXY_TYPE, 0);
+					 fr_dict_root(fr_dict_internal), PW_POST_PROXY_TYPE);
 	vp->vp_integer = dval->value;
 
 	return 1;
@@ -3123,8 +3125,8 @@ do_home:
 					       PW_USER_NAME, TAG_ANY);
 		if (!vp) {
 			vp_cursor_t cursor;
-			vp = radius_pair_create(NULL, NULL,
-					       PW_USER_NAME, 0);
+
+			vp = radius_pair_create(NULL, NULL, fr_dict_root(fr_dict_radius), PW_USER_NAME);
 			rad_assert(vp != NULL);	/* handled by above function */
 			/* Insert at the START of the list */
 			/* FIXME: Can't make assumptions about ordering */
@@ -3394,7 +3396,7 @@ static int request_proxy_anew(REQUEST *request)
 					       PW_ACCT_DELAY_TIME, TAG_ANY);
 		if (!vp) vp = radius_pair_create(request->proxy->packet,
 						&request->proxy->packet->vps,
-						PW_ACCT_DELAY_TIME, 0);
+						fr_dict_root(fr_dict_radius), PW_ACCT_DELAY_TIME);
 		if (vp) {
 			struct timeval now;
 

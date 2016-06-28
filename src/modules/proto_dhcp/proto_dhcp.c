@@ -322,7 +322,7 @@ static rlm_rcode_t dhcp_process(REQUEST *request)
 
 		/* DHCP-Relay-IP-Address */
 		relay = radius_pair_create(request->reply, &request->reply->vps,
-					  272, DHCP_MAGIC_VENDOR);
+					   fr_dict_root(dict_dhcp), 272);
 		if (relay) relay->vp_ipaddr = vp->vp_ipaddr;
 	}
 

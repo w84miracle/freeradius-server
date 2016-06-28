@@ -173,7 +173,8 @@ static rlm_rcode_t CC_HINT(nonnull) mod_pre_proxy(UNUSED void *instance, UNUSED 
 	if (fr_pair_find_by_child_num(request->proxy->packet->vps, fr_dict_root(fr_dict_radius),
 				      PW_CHAP_CHALLENGE, TAG_ANY)) return RLM_MODULE_NOOP;
 
-	vp = radius_pair_create(request->proxy->packet, &request->proxy->packet->vps, PW_CHAP_CHALLENGE, 0);
+	vp = radius_pair_create(request->proxy->packet, &request->proxy->packet->vps,
+				fr_dict_root(fr_dict_radius), PW_CHAP_CHALLENGE);
 	if (!vp) return RLM_MODULE_FAIL;
 
 	fr_pair_value_memcpy(vp, request->packet->vector, sizeof(request->packet->vector));

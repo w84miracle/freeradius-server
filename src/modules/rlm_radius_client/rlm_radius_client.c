@@ -557,7 +557,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_process(void *instance, void *thread, RE
 		    			      fr_dict_root(fr_dict_radius), PW_CHAP_PASSWORD, TAG_ANY) &&
 		    fr_pair_find_by_child_num(request->packet->vps,
 		    			      fr_dict_root(fr_dict_radius), PW_CHAP_CHALLENGE, TAG_ANY) == NULL) {
-			vp = radius_pair_create(packet, &packet->vps, PW_CHAP_CHALLENGE, 0);
+			vp = radius_pair_create(packet, &packet->vps, fr_dict_root(fr_dict_radius), PW_CHAP_CHALLENGE);
 			fr_pair_value_memcpy(vp, request->packet->vector, sizeof(request->packet->vector));
 		}
 

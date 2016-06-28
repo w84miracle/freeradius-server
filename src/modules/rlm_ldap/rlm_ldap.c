@@ -997,7 +997,8 @@ static rlm_rcode_t mod_authorize(void *instance, UNUSED void *thread, REQUEST *r
 		/*
 		 *	Add Cleartext-Password attribute to the request
 		 */
-		vp = radius_pair_create(request, &request->control, PW_CLEARTEXT_PASSWORD, 0);
+		vp = radius_pair_create(request, &request->control,
+					fr_dict_root(fr_dict_internal), PW_CLEARTEXT_PASSWORD);
 		fr_pair_value_strcpy(vp, password);
 		vp->vp_length = pass_size;
 

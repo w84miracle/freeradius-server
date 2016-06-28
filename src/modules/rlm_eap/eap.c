@@ -164,7 +164,7 @@ rlm_rcode_t eap_compose(eap_session_t *eap_session)
 
 	eap_packet = (eap_packet_raw_t *)reply->packet;
 
-	vp = radius_pair_create(request->reply, &request->reply->vps, PW_EAP_MESSAGE, 0);
+	vp = radius_pair_create(request->reply, &request->reply->vps, fr_dict_root(fr_dict_radius), PW_EAP_MESSAGE);
 	if (!vp) return RLM_MODULE_INVALID;
 
 	vp->vp_length = eap_packet->length[0] * 256 + eap_packet->length[1];

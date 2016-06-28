@@ -150,7 +150,7 @@ static int digest_fix(REQUEST *request)
 			 *	Didn't they know that VSA's exist?
 			 */
 			sub = radius_pair_create(request->packet, &request->packet->vps,
-						PW_DIGEST_REALM - 1 + p[0], 0);
+						 fr_dict_root(fr_dict_internal), PW_DIGEST_REALM - 1 + p[0]);
 			fr_pair_value_bstrncpy(sub, p + 2, attrlen - 2);
 
 			RINDENT();

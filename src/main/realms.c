@@ -2375,7 +2375,8 @@ void home_server_update_request(home_server_t *home, REQUEST *request)
 		 *	The RFC's say we have to do this, but FreeRADIUS
 		 *	doesn't need it.
 		 */
-		vp = radius_pair_create(request->proxy->packet, &request->proxy->packet->vps, PW_PROXY_STATE, 0);
+		vp = radius_pair_create(request->proxy->packet, &request->proxy->packet->vps,
+					fr_dict_root(fr_dict_radius), PW_PROXY_STATE);
 		snprintf(buff, sizeof(buff), "%u", request->packet->id);
 		fr_pair_value_memcpy(vp, (uint8_t *)buff, strlen(buff));
 
@@ -2392,7 +2393,8 @@ void home_server_update_request(home_server_t *home, REQUEST *request)
 		    			      PW_CHAP_PASSWORD, TAG_ANY) &&
 		    fr_pair_find_by_child_num(request->proxy->packet->vps, fr_dict_root(fr_dict_radius),
 		    			      PW_CHAP_CHALLENGE, TAG_ANY) == NULL) {
-			vp = radius_pair_create(request->proxy->packet, &request->proxy->packet->vps, PW_CHAP_CHALLENGE, 0);
+			vp = radius_pair_create(request->proxy->packet, &request->proxy->packet->vps,
+						fr_dict_root(fr_dict_radius), PW_CHAP_CHALLENGE);
 			fr_pair_value_memcpy(vp, request->packet->vector, sizeof(request->packet->vector));
 		}
 
