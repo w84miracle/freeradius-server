@@ -712,8 +712,9 @@ static PW_CODE eap_fast_eap_payload(REQUEST *request, eap_session_t *eap_session
 			 * Tell the original request that it's going
 			 * to be proxied.
 			 */
-			fr_pair_list_mcopy_by_num(request, &request->control, &fake->control, 0,
-						  PW_PROXY_TO_REALM, TAG_ANY);
+			fr_pair_list_mcopy_by_child_num(request, &request->control, &fake->control,
+							fr_dict_root(fr_dict_internal),
+							PW_PROXY_TO_REALM, TAG_ANY);
 
 			/*
 			 * Seed the proxy packet with the

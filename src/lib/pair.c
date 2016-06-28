@@ -1794,19 +1794,22 @@ void fr_pair_list_move(TALLOC_CTX *ctx, VALUE_PAIR **to, VALUE_PAIR **from)
  * @param[in] ctx for talloc
  * @param[in,out] to destination list.
  * @param[in,out] from source list.
+ * @param[in] parent to search for attr in.
  * @param[in] attr to match. If attribute PW_VENDOR_SPECIFIC and vendor 0,
  *	will match (and therefore copy) only VSAs.
  *	If attribute 0 and vendor 0  will match (and therefore copy) all
  *	attributes.
- * @param[in] vendor to match.
  * @param[in] tag to match, TAG_ANY matches any tag, TAG_NONE matches tagless VPs.
  * @param[in] move if set to "true", VPs are moved.  If set to "false", VPs are copied, and the old one deleted.
  */
-static void fr_pair_list_move_by_num_internal(TALLOC_CTX *ctx, VALUE_PAIR **to, VALUE_PAIR **from, unsigned int vendor,
-					      unsigned int attr, int8_t tag, bool move)
+static void fr_pair_list_move_by_child_num_internal(TALLOC_CTX *ctx, VALUE_PAIR **to, VALUE_PAIR **from,
+						    fr_dict_attr_t const *parent, unsigned int attr,
+						    int8_t tag, bool move)
 {
 	VALUE_PAIR *to_tail, *i, *next, *this;
 	VALUE_PAIR *iprev = NULL;
+
+	fr_dict_attr_t const *da;
 
 	/*
 	 *	Find the last pair in the "to" list and put it in "to_tail".
@@ -1823,10 +1826,10 @@ static void fr_pair_list_move_by_num_internal(TALLOC_CTX *ctx, VALUE_PAIR **to, 
 		to_tail = NULL;
 
 	/*
-	 *	Attr/vendor of 0 means "move them all".
+	 *	Attr/Parent of 0 means "move them all".
 	 *	It's better than "fr_pair_add(foo,bar);bar=NULL"
 	 */
-	if ((vendor == 0) && (attr == 0)) {
+	if ((parent == NULL) && (attr == 0)) {
 		if (*to) {
 			to_tail->next = *from;
 		} else {
@@ -1841,6 +1844,9 @@ static void fr_pair_list_move_by_num_internal(TALLOC_CTX *ctx, VALUE_PAIR **to, 
 		return;
 	}
 
+	da = fr_dict_attr_child_by_num(parent, attr);
+	if (!da) return;
+
 	for (i = *from; i; i = next) {
 		VERIFY_VP(i);
 		next = i->next;
@@ -1854,7 +1860,7 @@ static void fr_pair_list_move_by_num_internal(TALLOC_CTX *ctx, VALUE_PAIR **to, 
 		 *	vendor=0, attr = PW_VENDOR_SPECIFIC means
 		 *	"match any vendor attribute".
 		 */
-		if ((vendor == 0) && (attr == PW_VENDOR_SPECIFIC)) {
+		if (!parent && (attr == PW_VENDOR_SPECIFIC)) {
 			/*
 			 *	It's a VSA: move it over.
 			 */
@@ -1875,18 +1881,9 @@ static void fr_pair_list_move_by_num_internal(TALLOC_CTX *ctx, VALUE_PAIR **to, 
 		/*
 		 *	If it isn't an exact match, ignore it.
 		 */
-		if (!vendor) {
-			if (!(i->da->parent->flags.is_root &&
-			      (i->da->attr == attr) && (i->da->vendor == 0))) {
-				iprev = i;
-				continue;
-			}
-		} else {
-			if (!((i->da->parent->type == PW_TYPE_VENDOR) &&
-			      (i->da->attr == attr) && (i->da->vendor == vendor))) {
-				iprev = i;
-				continue;
-			}
+		if (i->da != da) {
+			iprev = i;
+			continue;
 		}
 
 	move:
@@ -1907,10 +1904,12 @@ static void fr_pair_list_move_by_num_internal(TALLOC_CTX *ctx, VALUE_PAIR **to, 
 		/*
 		 *	Add the attribute to the "to" list.
 		 */
-		if (to_tail)
+		if (to_tail) {
 			to_tail->next = this;
-		else
+		} else {
 			*to = this;
+		}
+
 		to_tail = this;
 		this->next = NULL;
 
@@ -1936,45 +1935,45 @@ static void fr_pair_list_move_by_num_internal(TALLOC_CTX *ctx, VALUE_PAIR **to, 
  * @param[in] ctx for talloc
  * @param[in,out] to destination list.
  * @param[in,out] from source list.
- * @param[in] attr to match. If attribute PW_VENDOR_SPECIFIC and vendor 0,
+ * @param[in] parent to search for attr in.
+ * @param[in] attr to match. If attribute PW_VENDOR_SPECIFIC and parent NULL,
  *	will match (and therefore copy) only VSAs.
  *	If attribute 0 and vendor 0  will match (and therefore copy) all
  *	attributes.
- * @param[in] vendor to match.
  * @param[in] tag to match, TAG_ANY matches any tag, TAG_NONE matches tagless VPs.
  */
-void fr_pair_list_move_by_num(TALLOC_CTX *ctx, VALUE_PAIR **to, VALUE_PAIR **from,
-			      unsigned int vendor, unsigned int attr, int8_t tag)
+void fr_pair_list_move_by_child_num(TALLOC_CTX *ctx, VALUE_PAIR **to, VALUE_PAIR **from,
+			      fr_dict_attr_t const *parent, unsigned int attr, int8_t tag)
 {
-	fr_pair_list_move_by_num_internal(ctx, to, from, vendor, attr, tag, true);
+	fr_pair_list_move_by_child_num_internal(ctx, to, from, parent, attr, tag, true);
 }
 
 
 /** Copy / delete matching pairs between VALUE_PAIR lists
  *
  * Move pairs of a matching attribute number, vendor number and tag from the
- * the input list to the output list.  Like fr_pair_list_move_by_num(), but
+ * the input list to the output list.  Like fr_pair_list_move_by_child_num(), but
  * instead does copy / delete.
  *
  * @note The pair is NOT reparented.  It is copied and deleted.
  *
  * @note fr_pair_list_free should be called on the head of the old list to free unmoved
-	 attributes (if they're no longer needed).
+ *	 attributes (if they're no longer needed).
  *
  * @param[in] ctx for talloc
  * @param[in,out] to destination list.
  * @param[in,out] from source list.
- * @param[in] attr to match. If attribute PW_VENDOR_SPECIFIC and vendor 0,
+ * @param[in] parent to search for attr in.
+ * @param[in] attr to match. If attribute PW_VENDOR_SPECIFIC and parent NULL,
  *	will match (and therefore copy) only VSAs.
  *	If attribute 0 and vendor 0  will match (and therefore copy) all
  *	attributes.
- * @param[in] vendor to match.
  * @param[in] tag to match, TAG_ANY matches any tag, TAG_NONE matches tagless VPs.
  */
-void fr_pair_list_mcopy_by_num(TALLOC_CTX *ctx, VALUE_PAIR **to, VALUE_PAIR **from,
-			       unsigned int vendor, unsigned int attr, int8_t tag)
+void fr_pair_list_mcopy_by_child_num(TALLOC_CTX *ctx, VALUE_PAIR **to, VALUE_PAIR **from,
+				     fr_dict_attr_t const *parent, unsigned int attr, int8_t tag)
 {
-	fr_pair_list_move_by_num_internal(ctx, to, from, vendor, attr, tag, false);
+	fr_pair_list_move_by_child_num_internal(ctx, to, from, parent, attr, tag, false);
 }
 
 

@@ -49,14 +49,14 @@ static CONF_PARSER submodule_config[] = {
 
 static void fix_mppe_keys(eap_session_t *eap_session, mschapv2_opaque_t *data)
 {
-	fr_pair_list_mcopy_by_num(data, &data->mppe_keys, &eap_session->request->reply->vps, VENDORPEC_MICROSOFT, 7,
-				  TAG_ANY);
-	fr_pair_list_mcopy_by_num(data, &data->mppe_keys, &eap_session->request->reply->vps, VENDORPEC_MICROSOFT, 8,
-				  TAG_ANY);
-	fr_pair_list_mcopy_by_num(data, &data->mppe_keys, &eap_session->request->reply->vps, VENDORPEC_MICROSOFT, 16,
-				  TAG_ANY);
-	fr_pair_list_mcopy_by_num(data, &data->mppe_keys, &eap_session->request->reply->vps, VENDORPEC_MICROSOFT, 17,
-				  TAG_ANY);
+	fr_pair_list_mcopy_by_child_num(data, &data->mppe_keys, &eap_session->request->reply->vps,
+					vendor_microsoft, 7, TAG_ANY);
+	fr_pair_list_mcopy_by_child_num(data, &data->mppe_keys, &eap_session->request->reply->vps,
+					vendor_microsoft, 8, TAG_ANY);
+	fr_pair_list_mcopy_by_child_num(data, &data->mppe_keys, &eap_session->request->reply->vps,
+					vendor_microsoft, 16, TAG_ANY);
+	fr_pair_list_mcopy_by_child_num(data, &data->mppe_keys, &eap_session->request->reply->vps,
+					vendor_microsoft, 17, TAG_ANY);
 }
 
 /*
@@ -217,8 +217,8 @@ static int CC_HINT(nonnull) mschap_postproxy(eap_session_t *eap_session, UNUSED 
 		 *	Move the attribute, so it doesn't go into
 		 *	the reply.
 		 */
-		fr_pair_list_mcopy_by_num(data, &response, &request->reply->vps, VENDORPEC_MICROSOFT,
-					  PW_MSCHAP2_SUCCESS, TAG_ANY);
+		fr_pair_list_mcopy_by_child_num(data, &response, &request->reply->vps,
+						vendor_microsoft, PW_MSCHAP2_SUCCESS, TAG_ANY);
 		break;
 
 	default:
@@ -382,7 +382,8 @@ failure:
 		case PW_EAP_MSCHAPV2_SUCCESS:
 			eap_round->request->code = PW_EAP_SUCCESS;
 
-			fr_pair_list_mcopy_by_num(request->reply, &request->reply->vps, &data->mppe_keys, 0, 0, TAG_ANY);
+			fr_pair_list_mcopy_by_child_num(request->reply, &request->reply->vps, &data->mppe_keys,
+							NULL, 0, TAG_ANY);
 			/* FALL-THROUGH */
 
 		case PW_EAP_MSCHAPV2_ACK:
@@ -392,7 +393,8 @@ failure:
 			 */
 			request->options &= ~RAD_REQUEST_OPTION_PROXY_EAP;
 #endif
-			fr_pair_list_mcopy_by_num(request->reply, &request->reply->vps, &data->reply, 0, 0, TAG_ANY);
+			fr_pair_list_mcopy_by_child_num(request->reply, &request->reply->vps, &data->reply,
+							NULL, 0, TAG_ANY);
 			return RLM_MODULE_OK;
 		}
 		REDEBUG("Sent SUCCESS expecting SUCCESS (or ACK) but got %d", ccode);
@@ -591,12 +593,12 @@ packet_ready:
 	 */
 	response = NULL;
 	if (rcode == RLM_MODULE_OK) {
-		fr_pair_list_mcopy_by_num(data, &response, &request->reply->vps, VENDORPEC_MICROSOFT,
-					  PW_MSCHAP2_SUCCESS, TAG_ANY);
+		fr_pair_list_mcopy_by_child_num(data, &response, &request->reply->vps,
+						vendor_microsoft, PW_MSCHAP2_SUCCESS, TAG_ANY);
 		data->code = PW_EAP_MSCHAPV2_SUCCESS;
 	} else if (inst->send_error) {
-		fr_pair_list_mcopy_by_num(data, &response, &request->reply->vps, VENDORPEC_MICROSOFT, PW_MSCHAP_ERROR,
-					  TAG_ANY);
+		fr_pair_list_mcopy_by_child_num(data, &response, &request->reply->vps,
+						vendor_microsoft, PW_MSCHAP_ERROR, TAG_ANY);
 		if (response) {
 			int n,err,retry;
 			char buf[34];

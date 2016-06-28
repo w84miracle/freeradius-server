@@ -415,7 +415,8 @@ static rlm_rcode_t CC_HINT(nonnull) process_reply(eap_session_t *eap_session, tl
 		 *	Access-Challenge is ignored.
 		 */
 		vp = NULL;
-		fr_pair_list_mcopy_by_num(t, &vp, &reply->vps, 0, PW_EAP_MESSAGE, TAG_ANY);
+		fr_pair_list_mcopy_by_child_num(t, &vp, &reply->vps,
+						fr_dict_root(fr_dict_radius), PW_EAP_MESSAGE, TAG_ANY);
 
 		/*
 		 *	Handle the ACK, by tunneling any necessary reply
@@ -720,7 +721,7 @@ rlm_rcode_t eap_peap_process(eap_session_t *eap_session, tls_session_t *tls_sess
 
 		/* save the SoH VPs */
 		rad_assert(!t->soh_reply_vps);
-		fr_pair_list_mcopy_by_num(t, &t->soh_reply_vps, &fake->reply->vps, 0, 0, TAG_ANY);
+		fr_pair_list_mcopy_by_child_num(t, &t->soh_reply_vps, &fake->reply->vps, NULL, 0, TAG_ANY);
 		rad_assert(!fake->reply->vps);
 		TALLOC_FREE(fake);
 
@@ -965,8 +966,9 @@ rlm_rcode_t eap_peap_process(eap_session_t *eap_session, tls_session_t *tls_sess
 			 *	Tell the original request that it's going
 			 *	to be proxied.
 			 */
-			fr_pair_list_mcopy_by_num(request, &request->control, &fake->control, 0, PW_PROXY_TO_REALM,
-						  TAG_ANY);
+			fr_pair_list_mcopy_by_child_num(request, &request->control, &fake->control,
+							fr_dict_root(fr_dict_internal), PW_PROXY_TO_REALM,
+							TAG_ANY);
 
 			/*
 			 *	Seed the proxy packet with the

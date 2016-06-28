@@ -278,10 +278,10 @@ VALUE_PAIR	*fr_pair_list_copy(TALLOC_CTX *ctx, VALUE_PAIR *from);
 VALUE_PAIR	*fr_pair_list_copy_by_num(TALLOC_CTX *ctx, VALUE_PAIR *from,
 				     unsigned int vendor, unsigned int attr, int8_t tag);
 void		fr_pair_list_move(TALLOC_CTX *ctx, VALUE_PAIR **to, VALUE_PAIR **from);
-void		fr_pair_list_move_by_num(TALLOC_CTX *ctx, VALUE_PAIR **to, VALUE_PAIR **from,
-					 unsigned int vendor, unsigned int attr, int8_t tag);
-void		fr_pair_list_mcopy_by_num(TALLOC_CTX *ctx, VALUE_PAIR **to, VALUE_PAIR **from,
-					  unsigned int vendor, unsigned int attr, int8_t tag);
+void		fr_pair_list_move_by_child_num(TALLOC_CTX *ctx, VALUE_PAIR **to, VALUE_PAIR **from,
+					 fr_dict_attr_t const *parent, unsigned int attr, int8_t tag);
+void		fr_pair_list_mcopy_by_child_num(TALLOC_CTX *ctx, VALUE_PAIR **to, VALUE_PAIR **from,
+					  	fr_dict_attr_t const *parent, unsigned int attr, int8_t tag);
 
 /* Value manipulation */
 int		fr_pair_value_from_str(VALUE_PAIR *vp, char const *value, size_t len);

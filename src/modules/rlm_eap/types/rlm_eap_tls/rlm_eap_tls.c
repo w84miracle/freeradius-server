@@ -102,8 +102,8 @@ static rlm_rcode_t mod_process(void *type_arg, eap_session_t *eap_session)
 			rad_virtual_server(fake);
 
 			/* copy the reply vps back to our reply */
-			fr_pair_list_mcopy_by_num(request->reply, &request->reply->vps, &fake->reply->vps, 0, 0,
-						  TAG_ANY);
+			fr_pair_list_mcopy_by_child_num(request->reply, &request->reply->vps,
+							&fake->reply->vps, NULL, 0, TAG_ANY);
 
 			/* reject if virtual server didn't return accept */
 			if (fake->reply->code != PW_CODE_ACCESS_ACCEPT) {
