@@ -1207,7 +1207,8 @@ static void request_finish(REQUEST *request, fr_state_action_t action)
 		break;
 
 	case PW_CODE_ACCESS_CHALLENGE:
-		fr_pair_delete_by_num(&request->control, 0, PW_POST_AUTH_TYPE, TAG_ANY);
+		fr_pair_delete_by_child_num(&request->control,
+					    fr_dict_root(fr_dict_internal), PW_POST_AUTH_TYPE, TAG_ANY);
 		vp = pair_make_config("Post-Auth-Type", "Challenge", T_OP_SET);
 		if (vp) rad_postauth(request);
 		break;
@@ -1225,7 +1226,8 @@ static void request_finish(REQUEST *request, fr_state_action_t action)
 	 *	to reject if a module returns reject.
 	 */
 	if (request->reply->code == PW_CODE_ACCESS_REJECT) {
-		fr_pair_delete_by_num(&request->control, 0, PW_POST_AUTH_TYPE, TAG_ANY);
+		fr_pair_delete_by_child_num(&request->control,
+					    fr_dict_root(fr_dict_internal), PW_POST_AUTH_TYPE, TAG_ANY);
 		vp = pair_make_config("Post-Auth-Type", "Reject", T_OP_SET);
 		if (vp) rad_postauth(request);
 	}
@@ -2569,7 +2571,8 @@ static int setup_post_proxy_fail(REQUEST *request)
 	if (!dval) dval = fr_dict_enum_by_name(da, "Fail");
 
 	if (!dval) {
-		fr_pair_delete_by_num(&request->control, 0, PW_POST_PROXY_TYPE, TAG_ANY);
+		fr_pair_delete_by_child_num(&request->control, fr_dict_root(fr_dict_internal),
+					    PW_POST_PROXY_TYPE, TAG_ANY);
 		return 0;
 	}
 
@@ -2723,12 +2726,15 @@ static void proxy_no_reply(REQUEST *request, fr_state_action_t action)
 			 *	post-proxy-type FAIL told us to create
 			 *	one.
 			 */
-			vp = fr_pair_find_by_child_num(request->control, fr_dict_root(fr_dict_internal),
-						       PW_RESPONSE_PACKET_TYPE, TAG_ANY);
+			vp = fr_pair_find_by_child_num(request->control,
+						       fr_dict_root(fr_dict_internal), PW_RESPONSE_PACKET_TYPE,
+						       TAG_ANY);
 			if (vp && (vp->vp_integer != 256)) {
 				request->proxy->reply = fr_radius_alloc_reply(request, request->proxy->packet);
 				request->proxy->reply->code = vp->vp_integer;
-				fr_pair_delete_by_num(&request->control, 0, PW_RESPONSE_PACKET_TYPE, TAG_ANY);
+				fr_pair_delete_by_child_num(&request->control,
+							    fr_dict_root(fr_dict_internal), PW_RESPONSE_PACKET_TYPE,
+							    TAG_ANY);
 			}
 
 			request->handle(request);
@@ -2792,7 +2798,7 @@ static void proxy_running(REQUEST *request, fr_state_action_t action)
 			 *	Except that we don't copy over Proxy-State.
 			 */
 			vp = fr_pair_list_copy(request->reply, request->proxy->reply->vps);
-			fr_pair_delete_by_num(&vp, 0, PW_PROXY_STATE, TAG_ANY);
+			fr_pair_delete_by_child_num(&vp, fr_dict_root(fr_dict_radius), PW_PROXY_STATE, TAG_ANY);
 			fr_pair_add(&request->reply->vps, vp);
 
 			request->handle(request);

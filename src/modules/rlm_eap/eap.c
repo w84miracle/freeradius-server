@@ -484,8 +484,10 @@ void eap_fail(eap_session_t *eap_session)
 	/*
 	 *	Delete any previous replies.
 	 */
-	fr_pair_delete_by_num(&eap_session->request->reply->vps, 0, PW_EAP_MESSAGE, TAG_ANY);
-	fr_pair_delete_by_num(&eap_session->request->reply->vps, 0, PW_STATE, TAG_ANY);
+	fr_pair_delete_by_child_num(&eap_session->request->reply->vps,
+				    fr_dict_root(fr_dict_radius), PW_EAP_MESSAGE, TAG_ANY);
+	fr_pair_delete_by_child_num(&eap_session->request->reply->vps,
+				    fr_dict_root(fr_dict_radius), PW_STATE, TAG_ANY);
 
 	talloc_free(eap_session->this_round->request);
 	eap_session->this_round->request = talloc_zero(eap_session->this_round, eap_packet_t);

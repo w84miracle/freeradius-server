@@ -65,7 +65,7 @@ static int tls_cache_attrs(REQUEST *request,
 {
 	VALUE_PAIR *vp;
 
-	fr_pair_delete_by_num(&request->packet->vps, 0, PW_TLS_SESSION_ID, TAG_ANY);
+	fr_pair_delete_by_child_num(&request->packet->vps, fr_dict_root(fr_dict_internal), PW_TLS_SESSION_ID, TAG_ANY);
 
 	RDEBUG2("Setting TLS cache control attributes");
 	vp = fr_pair_afrom_child_num(request->packet, fr_dict_root(fr_dict_internal), PW_TLS_SESSION_ID);
@@ -136,7 +136,7 @@ int tls_cache_process(REQUEST *request, char const *virtual_server, int autz_typ
 	request->module = module;
 	request->component = component;
 
-	fr_pair_delete_by_num(&request->control, 0, PW_TLS_CACHE_ACTION, TAG_ANY);
+	fr_pair_delete_by_child_num(&request->control, fr_dict_root(fr_dict_internal), PW_TLS_CACHE_ACTION, TAG_ANY);
 
 	return rcode;
 }
@@ -304,7 +304,7 @@ int tls_cache_write(REQUEST *request, tls_session_t *tls_session)
 	/*
 	 *	Ensure that the session data can't be used by anyone else.
 	 */
-	fr_pair_delete_by_num(&request->state, 0, PW_TLS_SESSION_DATA, TAG_ANY);
+	fr_pair_delete_by_child_num(&request->state, fr_dict_root(fr_dict_internal), PW_TLS_SESSION_DATA, TAG_ANY);
 
 	return ret;
 }
@@ -406,7 +406,7 @@ static SSL_SESSION *tls_cache_read(SSL *ssl,
 	/*
 	 *	Ensure that the session data can't be used by anyone else.
 	 */
-	fr_pair_delete_by_num(&request->state, 0, PW_TLS_SESSION_DATA, TAG_ANY);
+	fr_pair_delete_by_child_num(&request->state, fr_dict_root(fr_dict_internal), PW_TLS_SESSION_DATA, TAG_ANY);
 
 	return sess;
 }

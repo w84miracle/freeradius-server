@@ -128,8 +128,8 @@ static rlm_rcode_t CC_HINT(nonnull) mod_post_auth(void *instance, UNUSED void *t
 	 *	the WiMAX-MSK so that the client has a key available.
 	 */
 	if (inst->delete_mppe_keys) {
-		fr_pair_delete_by_num(&request->reply->vps, VENDORPEC_MICROSOFT, PW_MSCHAP_MPPE_SEND_KEY, TAG_ANY);
-		fr_pair_delete_by_num(&request->reply->vps, VENDORPEC_MICROSOFT, PW_MSCHAP_MPPE_RECV_KEY, TAG_ANY);
+		fr_pair_delete_by_child_num(&request->reply->vps, vendor_microsoft, PW_MSCHAP_MPPE_SEND_KEY, TAG_ANY);
+		fr_pair_delete_by_child_num(&request->reply->vps, vendor_microsoft, PW_MSCHAP_MPPE_RECV_KEY, TAG_ANY);
 
 		vp = pair_make_reply("WiMAX-MSK", NULL, T_OP_EQ);
 		if (vp) {

@@ -187,7 +187,7 @@ int eap_basic_compose(RADIUS_PACKET *packet, eap_packet_t *reply)
 	if (eap_wireformat(reply) < 0) return RLM_MODULE_INVALID;
 	eap_packet = (eap_packet_raw_t *)reply->packet;
 
-	fr_pair_delete_by_num(&(packet->vps), 0, PW_EAP_MESSAGE, TAG_ANY);
+	fr_pair_delete_by_child_num(&(packet->vps), fr_dict_root(fr_dict_radius), PW_EAP_MESSAGE, TAG_ANY);
 
 	vp = eap_packet2vp(packet, eap_packet);
 	if (!vp) return RLM_MODULE_INVALID;

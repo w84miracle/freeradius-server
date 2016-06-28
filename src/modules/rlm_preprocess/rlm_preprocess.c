@@ -388,8 +388,8 @@ static int hints_setup(PAIR_LIST *hints, REQUEST *request)
 			add = fr_pair_list_copy(request->packet, i->reply);
 			ft = fall_through(add);
 
-			fr_pair_delete_by_num(&add, 0, PW_STRIP_USER_NAME, TAG_ANY);
-			fr_pair_delete_by_num(&add, 0, PW_FALL_THROUGH, TAG_ANY);
+			fr_pair_delete_by_child_num(&add, fr_dict_root(fr_dict_internal), PW_STRIP_USER_NAME, TAG_ANY);
+			fr_pair_delete_by_child_num(&add, fr_dict_root(fr_dict_internal), PW_FALL_THROUGH, TAG_ANY);
 			radius_pairmove(request, &request->packet->vps, add, true);
 
 			updated = 1;

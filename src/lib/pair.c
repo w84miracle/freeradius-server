@@ -822,41 +822,26 @@ int fr_pair_update_by_num(TALLOC_CTX *ctx, VALUE_PAIR **list,
  *
  * @param[in,out] head VP in list.
  * @param[in] attr to match.
- * @param[in] vendor to match.
+ * @param[in] parent to match.
  * @param[in] tag to match. TAG_ANY matches any tag, TAG_NONE matches tagless VPs.
  *
- * @todo should take DAs and do a point comparison.
  */
-void fr_pair_delete_by_num(VALUE_PAIR **head, unsigned int vendor, unsigned int attr, int8_t tag)
+void fr_pair_delete_by_child_num(VALUE_PAIR **head, fr_dict_attr_t const *parent, unsigned int attr, int8_t tag)
 {
 	VALUE_PAIR *i, *next;
 	VALUE_PAIR **last = head;
 
-	if (!vendor) {
-		for(i = *head; i; i = next) {
-			VERIFY_VP(i);
-			next = i->next;
-			if (i->da->parent->flags.is_root &&
-			    (i->da->attr == attr) && (i->da->vendor == 0) &&
-			    (!i->da->flags.has_tag || TAG_EQ(tag, i->tag))) {
-				*last = next;
-				talloc_free(i);
-			} else {
-				last = &i->next;
-			}
-		}
-	} else {
-		for(i = *head; i; i = next) {
-			VERIFY_VP(i);
-			next = i->next;
-			if ((i->da->parent->type == PW_TYPE_VENDOR) &&
-			    (i->da->attr == attr) && (i->da->vendor == vendor) &&
-			    (!i->da->flags.has_tag || TAG_EQ(tag, i->tag))) {
-				*last = next;
-				talloc_free(i);
-			} else {
-				last = &i->next;
-			}
+	fr_dict_attr_t const *da;
+
+	da = fr_dict_attr_child_by_num(parent, attr);
+	for (i = *head; i; i = next) {
+		VERIFY_VP(i);
+		next = i->next;
+		if ((i->da == da) && (!i->da->flags.has_tag || TAG_EQ(tag, i->tag))) {
+			*last = next;
+			talloc_free(i);
+		} else {
+			last = &i->next;
 		}
 	}
 }
@@ -1712,7 +1697,7 @@ void fr_pair_list_move(TALLOC_CTX *ctx, VALUE_PAIR **to, VALUE_PAIR **from)
 			if (!found) goto do_add;
 
 			/*
-			 *	Do NOT call fr_pair_delete_by_num() here,
+			 *	Do NOT call fr_pair_delete_by_child_num() here,
 			 *	due to issues with re-writing
 			 *	"request->username".
 			 *
@@ -1745,7 +1730,7 @@ void fr_pair_list_move(TALLOC_CTX *ctx, VALUE_PAIR **to, VALUE_PAIR **from)
 			 *	Delete *all* of the attributes
 			 *	of the same number.
 			 */
-			fr_pair_delete_by_num(&found->next, found->da->vendor, found->da->attr, TAG_ANY);
+			fr_pair_delete_by_child_num(&found->next, found->da->parent, found->da->attr, TAG_ANY);
 
 			/*
 			 *	Remove this attribute from the

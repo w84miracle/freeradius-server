@@ -303,7 +303,8 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authorize(void *instance, UNUSED void *t
 	if (state != NULL) {
 		DEBUG("Found reply to access challenge (AUTZ), Adding Auth-Type '%s'",inst->authtype);
 
-		fr_pair_delete_by_num(&request->control, 0, PW_AUTH_TYPE, TAG_ANY); /* delete old auth-type */
+		fr_pair_delete_by_child_num(&request->control, fr_dict_root(fr_dict_internal),
+					    PW_AUTH_TYPE, TAG_ANY); /* delete old auth-type */
 		pair_make_config("Auth-Type", inst->authtype, T_OP_SET);
 	}
 

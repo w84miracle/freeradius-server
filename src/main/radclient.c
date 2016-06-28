@@ -148,8 +148,8 @@ static int mschapv1_encode(RADIUS_PACKET *packet, VALUE_PAIR **request,
 	VALUE_PAIR		*challenge, *reply;
 	uint8_t			nthash[16];
 
-	fr_pair_delete_by_num(&packet->vps, VENDORPEC_MICROSOFT, PW_MSCHAP_CHALLENGE, TAG_ANY);
-	fr_pair_delete_by_num(&packet->vps, VENDORPEC_MICROSOFT, PW_MSCHAP_RESPONSE, TAG_ANY);
+	fr_pair_delete_by_child_num(&packet->vps, vendor_microsoft, PW_MSCHAP_CHALLENGE, TAG_ANY);
+	fr_pair_delete_by_child_num(&packet->vps, vendor_microsoft, PW_MSCHAP_RESPONSE, TAG_ANY);
 
 	challenge = fr_pair_afrom_child_num(packet, vendor_microsoft, PW_MSCHAP_CHALLENGE);
 	if (!challenge) {

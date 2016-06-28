@@ -794,7 +794,8 @@ skip:
 	rcode = rad_authenticate(request);
 
 	if (request->reply->code == PW_CODE_ACCESS_REJECT) {
-		fr_pair_delete_by_num(&request->control, 0, PW_POST_AUTH_TYPE, TAG_ANY);
+		fr_pair_delete_by_child_num(&request->control,
+					    fr_dict_root(fr_dict_internal), PW_POST_AUTH_TYPE, TAG_ANY);
 		vp = pair_make_config("Post-Auth-Type", "Reject", T_OP_SET);
 		if (vp) (void) rad_postauth(request);
 	}

@@ -957,7 +957,8 @@ rlm_rcode_t eap_peap_process(eap_session_t *eap_session, tls_session_t *tls_sess
 				 *	EAP-Message into another set
 				 *	of attributes.
 				 */
-				fr_pair_delete_by_num(&fake->packet->vps, 0, PW_EAP_MESSAGE, TAG_ANY);
+				fr_pair_delete_by_child_num(&fake->packet->vps,
+							    fr_dict_root(fr_dict_radius), PW_EAP_MESSAGE, TAG_ANY);
 			}
 
 			RDEBUG2("Tunnelled authentication will be proxied to %s", vp->vp_strvalue);

@@ -440,7 +440,7 @@ static rlm_rcode_t file_common(rlm_files_t const *inst, REQUEST *request, char c
 	/*
 	 *	Remove server internal parameters.
 	 */
-	fr_pair_delete_by_num(&reply_packet->vps, 0, PW_FALL_THROUGH, TAG_ANY);
+	fr_pair_delete_by_child_num(&reply_packet->vps, fr_dict_root(fr_dict_internal), PW_FALL_THROUGH, TAG_ANY);
 
 	/*
 	 *	See if we succeeded.

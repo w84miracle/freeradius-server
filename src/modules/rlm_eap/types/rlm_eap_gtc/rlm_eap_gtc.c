@@ -114,7 +114,7 @@ static rlm_rcode_t mod_process(void *instance, eap_session_t *eap_session)
 	 *	If there was a User-Password in the request,
 	 *	why the heck are they using EAP-GTC?
 	 */
-	fr_pair_delete_by_num(&request->packet->vps, 0, PW_USER_PASSWORD, TAG_ANY);
+	fr_pair_delete_by_child_num(&request->packet->vps, fr_dict_root(fr_dict_radius), PW_USER_PASSWORD, TAG_ANY);
 
 	MEM(vp = pair_make_request("User-Password", NULL, T_OP_EQ));
 	fr_pair_value_bstrncpy(vp, eap_round->response->type.data, eap_round->response->type.length);

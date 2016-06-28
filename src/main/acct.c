@@ -133,7 +133,8 @@ rlm_rcode_t rad_accounting(REQUEST *request)
 			realm = realm_find2(vp->vp_strvalue);
 			if (realm && !realm->acct_pool) {
 				DEBUG("rad_accounting: Cancelling proxy to realm %s, as it is a LOCAL realm.", realm->name);
-				fr_pair_delete_by_num(&request->control, 0, PW_PROXY_TO_REALM, TAG_ANY);
+				fr_pair_delete_by_child_num(&request->control, fr_dict_root(fr_dict_internal),
+							    PW_PROXY_TO_REALM, TAG_ANY);
 			} else {
 				/*
 				 *	Don't reply to the NAS now because

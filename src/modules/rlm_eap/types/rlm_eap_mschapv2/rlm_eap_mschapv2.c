@@ -546,7 +546,7 @@ packet_ready:
 		 *	the State attribute back, before passing
 		 *	the eap_session & request back into the tunnel.
 		 */
-		fr_pair_delete_by_num(&request->packet->vps, 0, PW_STATE, TAG_ANY);
+		fr_pair_delete_by_child_num(&request->packet->vps, fr_dict_root(fr_dict_radius), PW_STATE, TAG_ANY);
 
 		/*
 		 *	Fix the User-Name when proxying, to strip off
