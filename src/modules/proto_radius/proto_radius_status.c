@@ -54,7 +54,7 @@ static void status_running(REQUEST *request, fr_state_action_t action)
 	switch (request->request_state) {
 	case REQUEST_INIT:
 		if (request->packet->data_len != 0) {
-			if (fr_radius_decode(request->packet, NULL, request->client->secret) < 0) {
+			if (fr_radius_decode(dict_radius, request->packet, NULL, request->client->secret) < 0) {
 				RDEBUG("Failed decoding RADIUS packet: %s", fr_strerror());
 				goto done;
 			}

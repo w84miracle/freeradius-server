@@ -749,7 +749,7 @@ static void process_file(const char *root_dir, char const *filename)
 			fr_pair_cursor_init(&cursor, &head);
 			my_len = 0;
 			while (len > 0) {
-				my_len = fr_radius_decode_pair(NULL, &cursor, fr_dict_root(fr_dict_internal), attr, len,
+				my_len = fr_radius_decode_pair(NULL, &cursor, fr_dict_root(dict_radius), attr, len,
 							       &decoder_ctx);
 				if (my_len < 0) {
 					fr_pair_list_free(&head);

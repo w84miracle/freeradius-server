@@ -809,7 +809,7 @@ static int radsnmp_send_recv(radsnmp_conf_t *conf, int fd)
 						talloc_free(request);
 						continue;
 					}
-					if (fr_radius_decode(reply, request, conf->secret) < 0) {
+					if (fr_radius_decode(conf->dict_radius, reply, request, conf->secret) < 0) {
 						ERROR("Failed decoding reply: %s", fr_strerror());
 						goto recv_error;
 					}

@@ -2505,7 +2505,7 @@ static int client_socket_decode(UNUSED rad_listen_t *listener, REQUEST *request)
 	}
 #endif
 
-	return fr_radius_decode(request->packet, NULL,
+	return fr_radius_decode(fr_dict_radius, request->packet, NULL,
 				request->client->secret);
 }
 
@@ -2539,7 +2539,7 @@ static int proxy_socket_decode(UNUSED rad_listen_t *listener, REQUEST *request)
 	 *	fr_radius_verify is run in event.c, received_proxy_response()
 	 */
 
-	return fr_radius_decode(request->proxy->reply, request->proxy->packet,
+	return fr_radius_decode(fr_dict_radius, request->proxy->reply, request->proxy->packet,
 				request->proxy->home_server->secret);
 }
 #endif

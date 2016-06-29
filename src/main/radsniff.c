@@ -1395,7 +1395,8 @@ static void rs_packet_process(uint64_t count, rs_event_t *event, struct pcap_pkt
 			FILE *log_fp = fr_log_fp;
 
 			fr_log_fp = NULL;
-			ret = fr_radius_decode(current, original ? original->expect : NULL, conf->radius_secret);
+			ret = fr_radius_decode(dict_radius, current,
+					       original ? original->expect : NULL, conf->radius_secret);
 			fr_log_fp = log_fp;
 			if (ret != 0) {
 				fr_radius_free(&current);
@@ -1501,7 +1502,7 @@ static void rs_packet_process(uint64_t count, rs_event_t *event, struct pcap_pkt
 			FILE *log_fp = fr_log_fp;
 
 			fr_log_fp = NULL;
-			ret = fr_radius_decode(current, NULL, conf->radius_secret);
+			ret = fr_radius_decode(dict_radius, current, NULL, conf->radius_secret);
 			fr_log_fp = log_fp;
 
 			if (ret != 0) {

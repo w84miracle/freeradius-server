@@ -253,7 +253,7 @@ static ssize_t xlat_vendor(UNUSED TALLOC_CTX *ctx, char **out, size_t outlen,
 
 	if ((radius_get_vp(&vp, request, fmt) < 0) || !vp) return 0;
 
-	dv = fr_dict_vendor_by_num(NULL, vp->da->vendor);
+	dv = fr_dict_vendor_by_num(fr_dict_by_da(vp->da), vp->da->vendor);
 	if (!dv) return 0;
 	strlcpy(*out, dv->name, outlen);
 
@@ -368,7 +368,7 @@ static ssize_t xlat_debug_attr(UNUSED TALLOC_CTX *ctx, UNUSED char **out, UNUSED
 		if (vp->da->vendor) {
 			fr_dict_vendor_t const *dv;
 
-			dv = fr_dict_vendor_by_num(NULL, vp->da->vendor);
+			dv = fr_dict_vendor_by_num(fr_dict_by_da(vp->da), vp->da->vendor);
 			RIDEBUG2("Vendor : %i (%s)", vp->da->vendor, dv ? dv->name : "unknown");
 		}
 		RIDEBUG2("Type   : %s", fr_int2str(dict_attr_types, vp->vp_type, "<INVALID>"));

@@ -826,7 +826,7 @@ static ssize_t decode_vsa(TALLOC_CTX *ctx, vp_cursor_t *cursor, fr_dict_attr_t c
 		 *	We found an attribute representing the vendor
 		 *	so it *MUST* exist in the vendor tree.
 		 */
-		dv = fr_dict_vendor_by_num(NULL, vendor);
+		dv = fr_dict_vendor_by_num(fr_dict_by_da(parent), vendor);
 		if (!fr_cond_assert(dv)) return -1;
 	}
 	FR_PROTO_TRACE("decode context %s -> %s", parent->name, vendor_da->name);

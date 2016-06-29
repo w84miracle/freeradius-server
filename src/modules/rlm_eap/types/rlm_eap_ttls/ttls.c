@@ -204,22 +204,24 @@ static VALUE_PAIR *diameter2vp(REQUEST *request, REQUEST *fake, SSL *ssl,
 			goto next_attr;
 		}
 
-		if (vendor > 0) {
-			parent = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_radius), PW_VENDOR_SPECIFIC);
-			if (!parent) goto raw;
-
-			parent = fr_dict_attr_child_by_num(parent, vendor);
-			if (!parent) goto raw;
-		}
-
 		/*
 		 *	Create it.  If this fails, it's because we're OOM.
 		 */
+		if (vendor > 0) {
+			parent = fr_dict_vendor_attr_by_num(fr_dict_radius, PW_VENDOR_SPECIFIC, vendor);
+			if (!parent) goto raw;
+
+		} else {
+			parent = fr_dict_root(fr_dict_radius);
+		}
+
 		da = fr_dict_attr_child_by_num(parent, attr);
 		if (da) {
 			decoded = fr_radius_decode_pair_value(packet, &out, da, data, size, data_left, NULL);
-			if (decoded < 0) goto raw;
-
+			if (decoded < 0) {
+				RWDEBUG("Error decoding diameter attribute %i: %s", attr, fr_strerror());
+				goto raw;
+			}
 		} else {
 		raw:
 			da = fr_dict_unknown_afrom_fields(packet, fr_dict_root(fr_dict_internal), vendor, attr);
