@@ -87,8 +87,6 @@ static uint8_t eth_bcast[ETH_ADDR_LEN] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 }
 #endif
 
-extern fr_dict_t *dict_dhcp;
-
 static RADIUS_PACKET *fr_dhcp_packet_ok(uint8_t const *data, ssize_t data_len, fr_ipaddr_t src_ipaddr,
 					uint16_t src_port, fr_ipaddr_t dst_ipaddr, uint16_t dst_port);
 
@@ -1638,7 +1636,7 @@ ssize_t fr_dhcp_encode_option(uint8_t *out, size_t outlen, vp_cursor_t *cursor, 
 	return len;
 }
 
-int fr_dhcp_encode(RADIUS_PACKET *packet)
+int fr_dhcp_encode(fr_dict_t *dict, RADIUS_PACKET *packet)
 {
 	uint8_t		*p;
 	vp_cursor_t	cursor;
@@ -1657,7 +1655,7 @@ int fr_dhcp_encode(RADIUS_PACKET *packet)
 	if (packet->code == 0) packet->code = PW_DHCP_NAK;
 
 	/* store xid */
-	if ((vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict_dhcp), 260, TAG_ANY))) {
+	if ((vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict), 260, TAG_ANY))) {
 		packet->id = vp->vp_integer;
 	} else {
 		packet->id = fr_rand();
@@ -1678,7 +1676,7 @@ int fr_dhcp_encode(RADIUS_PACKET *packet)
 	 */
 
 	/* DHCP-DHCP-Maximum-Msg-Size */
-	vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict_dhcp), 57, TAG_ANY);
+	vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict), 57, TAG_ANY);
 	if (vp && (vp->vp_integer > mms)) {
 		mms = vp->vp_integer;
 
@@ -1686,7 +1684,7 @@ int fr_dhcp_encode(RADIUS_PACKET *packet)
 	}
 #endif
 
-	vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict_dhcp), 256, TAG_ANY);
+	vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict), 256, TAG_ANY);
 	if (vp) {
 		*p++ = vp->vp_integer & 0xff;
 	} else {
@@ -1694,21 +1692,21 @@ int fr_dhcp_encode(RADIUS_PACKET *packet)
 	}
 
 	/* DHCP-Hardware-Type */
-	if ((vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict_dhcp), 257, TAG_ANY))) {
+	if ((vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict), 257, TAG_ANY))) {
 		*p++ = vp->vp_byte;
 	} else {
 		*p++ = 1;		/* hardware type = ethernet */
 	}
 
 	/* DHCP-Hardware-Address-len */
-	if ((vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict_dhcp), 258, TAG_ANY))) {
+	if ((vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict), 258, TAG_ANY))) {
 		*p++ = vp->vp_byte;
 	} else {
 		*p++ = 6;		/* 6 bytes of ethernet */
 	}
 
 	/* DHCP-Hop-Count */
-	if ((vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict_dhcp), 259, TAG_ANY))) {
+	if ((vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict), 259, TAG_ANY))) {
 		*p = vp->vp_byte;
 	}
 	p++;
@@ -1719,27 +1717,27 @@ int fr_dhcp_encode(RADIUS_PACKET *packet)
 	p += 4;
 
 	/* DHCP-Number-of-Seconds */
-	if ((vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict_dhcp), 261, TAG_ANY))) {
+	if ((vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict), 261, TAG_ANY))) {
 		svalue = htons(vp->vp_short);
 		memcpy(p, &svalue, 2);
 	}
 	p += 2;
 
 	/* DHCP-Flags */
-	if ((vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict_dhcp), 262, TAG_ANY))) {
+	if ((vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict), 262, TAG_ANY))) {
 		svalue = htons(vp->vp_short);
 		memcpy(p, &svalue, 2);
 	}
 	p += 2;
 
 	/* DHCP-Client-IP-Address */
-	if ((vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict_dhcp), 263, TAG_ANY))) {
+	if ((vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict), 263, TAG_ANY))) {
 		memcpy(p, &vp->vp_ipaddr, 4);
 	}
 	p += 4;
 
 	/* DHCP-Your-IP-address */
-	if ((vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict_dhcp), 264, TAG_ANY))) {
+	if ((vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict), 264, TAG_ANY))) {
 		lvalue = vp->vp_ipaddr;
 	} else {
 		lvalue = htonl(INADDR_ANY);
@@ -1748,7 +1746,7 @@ int fr_dhcp_encode(RADIUS_PACKET *packet)
 	p += 4;
 
 	/* DHCP-Server-IP-Address */
-	vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict_dhcp), 265, TAG_ANY);
+	vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict), 265, TAG_ANY);
 	if (vp) {
 		lvalue = vp->vp_ipaddr;
 	} else {
@@ -1760,7 +1758,7 @@ int fr_dhcp_encode(RADIUS_PACKET *packet)
 	/*
 	 *	DHCP-Gateway-IP-Address
 	 */
-	if ((vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict_dhcp), 266, TAG_ANY))) {
+	if ((vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict), 266, TAG_ANY))) {
 		lvalue = vp->vp_ipaddr;
 	} else {
 		lvalue = htonl(INADDR_ANY);
@@ -1769,7 +1767,7 @@ int fr_dhcp_encode(RADIUS_PACKET *packet)
 	p += 4;
 
 	/* DHCP-Client-Hardware-Address */
-	if ((vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict_dhcp), 267, TAG_ANY))) {
+	if ((vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict), 267, TAG_ANY))) {
 		if (vp->vp_length == sizeof(vp->vp_ether)) {
 			/*
 			 *	Ensure that we mark the packet as being Ethernet.
@@ -1784,7 +1782,7 @@ int fr_dhcp_encode(RADIUS_PACKET *packet)
 	p += DHCP_CHADDR_LEN;
 
 	/* DHCP-Server-Host-Name */
-	if ((vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict_dhcp), 268, TAG_ANY))) {
+	if ((vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict), 268, TAG_ANY))) {
 		if (vp->vp_length > DHCP_SNAME_LEN) {
 			memcpy(p, vp->vp_strvalue, DHCP_SNAME_LEN);
 		} else {
@@ -1804,7 +1802,7 @@ int fr_dhcp_encode(RADIUS_PACKET *packet)
 	 */
 
 	/* DHCP-Boot-Filename */
-	vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict_dhcp), 269, TAG_ANY);
+	vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict), 269, TAG_ANY);
 	if (vp) {
 		if (vp->vp_length > DHCP_FILE_LEN) {
 			memcpy(p, vp->vp_strvalue, DHCP_FILE_LEN);
@@ -1974,7 +1972,7 @@ int fr_socket_packet(int if_index, struct sockaddr_ll *link_layer)
 /*
  *	Encode and send a DHCP packet on a raw packet socket.
  */
-int fr_dhcp_send_raw_packet(int sockfd, struct sockaddr_ll *link_layer, RADIUS_PACKET *packet)
+int fr_dhcp_send_raw_packet(fr_dict_t *dict, int sockfd, struct sockaddr_ll *link_layer, RADIUS_PACKET *packet)
 {
 	uint8_t			dhcp_packet[1518] = { 0 };
 	ethernet_header_t	*eth_hdr = (ethernet_header_t *)dhcp_packet;
@@ -1987,7 +1985,7 @@ int fr_dhcp_send_raw_packet(int sockfd, struct sockaddr_ll *link_layer, RADIUS_P
 
 	/* set ethernet source address to our MAC address (DHCP-Client-Hardware-Address). */
 	uint8_t dhmac[ETH_ADDR_LEN] = { 0 };
-	if ((vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict_dhcp), 267, TAG_ANY))) {
+	if ((vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict), 267, TAG_ANY))) {
 		if (vp->vp_length == sizeof(vp->vp_ether)) memcpy(dhmac, vp->vp_ether, vp->vp_length);
 	}
 
@@ -2050,7 +2048,8 @@ static char *ether_addr_print(const uint8_t *addr, char *buf)
  *
  *	FIXME: split this into two, recv_raw_packet, and verify(packet, original)
  */
-RADIUS_PACKET *fr_dhcp_recv_raw_packet(int sockfd, struct sockaddr_ll *link_layer, RADIUS_PACKET *request)
+RADIUS_PACKET *fr_dhcp_recv_raw_packet(fr_dict_t *dict, int sockfd, struct sockaddr_ll *link_layer,
+				       RADIUS_PACKET *request)
 {
 	VALUE_PAIR		*vp;
 	RADIUS_PACKET		*packet;
@@ -2105,7 +2104,7 @@ RADIUS_PACKET *fr_dhcp_recv_raw_packet(int sockfd, struct sockaddr_ll *link_laye
 	 *	Check if it matches the source HW address used (DHCP-Client-Hardware-Address = 267)
 	 */
 	if ((memcmp(&eth_bcast, &eth_hdr->ether_dst, ETH_ADDR_LEN) != 0) &&
-	    (vp = fr_pair_find_by_child_num(request->vps, fr_dict_root(dict_dhcp), 267, TAG_ANY)) &&
+	    (vp = fr_pair_find_by_child_num(request->vps, fr_dict_root(dict), 267, TAG_ANY)) &&
 	    (vp->vp_length == sizeof(vp->vp_ether)) && (memcmp(vp->vp_ether, &eth_hdr->ether_dst, ETH_ADDR_LEN) != 0)) {
 		char eth_dest[17 + 1];
 		char eth_req_src[17 + 1];
@@ -2220,13 +2219,16 @@ RADIUS_PACKET *fr_dhcp_recv_raw_packet(int sockfd, struct sockaddr_ll *link_laye
 
 /** Resolve/cache attributes in the DHCP dictionary
  *
+ * @note This is hacky and should be fixed somehow.  It's only used for comparing
+ *	attributes.
+ *
  * @return
  *	- 0 on success.
  *	- -1 on failure.
  */
-int dhcp_init(void)
+int fr_dhcp_init(fr_dict_t const *dict)
 {
-	dhcp_option_82 = fr_dict_attr_child_by_num(fr_dict_root(dict_dhcp), PW_DHCP_OPTION_82);
+	dhcp_option_82 = fr_dict_attr_child_by_num(fr_dict_root(dict), PW_DHCP_OPTION_82);
 	if (!dhcp_option_82) {
 		fr_strerror_printf("Missing dictionary attribute for DHCP-Option-82");
 		return -1;

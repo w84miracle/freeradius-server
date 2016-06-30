@@ -50,7 +50,7 @@ int8_t		fr_dhcp_attr_cmp(void const *a, void const *b);
 
 ssize_t		fr_dhcp_encode_option(uint8_t *out, size_t outlen, vp_cursor_t *cursor, void *encoder_ctx);
 
-int		fr_dhcp_encode(RADIUS_PACKET *packet);
+int		fr_dhcp_encode(fr_dict_t *dict, RADIUS_PACKET *packet);
 
 ssize_t		fr_dhcp_decode_option(TALLOC_CTX *ctx, vp_cursor_t *cursor,
 				      fr_dict_attr_t const *parent, uint8_t const *data, size_t len,
@@ -62,12 +62,12 @@ int		fr_dhcp_decode(fr_dict_t *dict, RADIUS_PACKET *packet);
 #include <linux/if_packet.h>
 int		fr_socket_packet(int iface_index, struct sockaddr_ll *p_ll);
 
-int		fr_dhcp_send_raw_packet(int sockfd, struct sockaddr_ll *p_ll, RADIUS_PACKET *packet);
+int		fr_dhcp_send_raw_packet(fr_dict_t *dict, int sockfd, struct sockaddr_ll *p_ll, RADIUS_PACKET *packet);
 
-RADIUS_PACKET	*fr_dhcp_recv_raw_packet(int sockfd, struct sockaddr_ll *p_ll, RADIUS_PACKET *request);
+RADIUS_PACKET	*fr_dhcp_recv_raw_packet(fr_dict_t *dict, int sockfd, struct sockaddr_ll *p_ll, RADIUS_PACKET *request);
 #endif
 
-int		dhcp_init(void);
+int		fr_dhcp_init(fr_dict_t const *dict_dhcp);
 
 /*
  *	This is a horrible hack.

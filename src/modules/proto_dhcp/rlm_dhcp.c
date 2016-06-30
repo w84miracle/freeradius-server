@@ -209,6 +209,14 @@ static int dhcp_load(void)
 		return ret;
 	}
 
+	/*
+	 *	Initialise DHCP library
+	 */
+	if (fr_dhcp_init(dict_dhcp) < 0) {
+		ERROR("%s", fr_strerror());
+		return ret;
+	}
+
 	return 0;
 }
 

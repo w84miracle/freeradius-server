@@ -328,7 +328,7 @@ static RADIUS_PACKET *fr_dhcp_recv_raw_loop(int lsockfd,
 			/* There is something to read on our socket */
 
 #ifdef HAVE_LINUX_IF_PACKET_H
-			cur_reply_p = fr_dhcp_recv_raw_packet(lsockfd, p_ll, request_p);
+			cur_reply_p = fr_dhcp_recv_raw_packet(dict_dhcp, lsockfd, p_ll, request_p);
 #else
 #  ifdef HAVE_LIBPCAP
 			cur_reply_p = fr_dhcp_recv_pcap(pcap);
@@ -430,7 +430,7 @@ static int send_with_socket(RADIUS_PACKET **reply, RADIUS_PACKET *request)
 
 #ifdef HAVE_LINUX_IF_PACKET_H
 	if (raw_mode) {
-		if (fr_dhcp_send_raw_packet(sockfd, &ll, request) < 0) {
+		if (fr_dhcp_send_raw_packet(dict_dhcp, sockfd, &ll, request) < 0) {
 			ERROR("Failed sending (fr_dhcp_send_raw_packet): %s", fr_syserror(errno));
 			return -1;
 		}
@@ -677,6 +677,14 @@ int main(int argc, char **argv)
 	}
 
 	/*
+	 *	Initialise DHCP library
+	 */
+	if (fr_dhcp_init(dict_dhcp) < 0) {
+		ERROR("%s", fr_strerror());
+		exit(1);
+	}
+
+	/*
 	 *	Resolve hostname.
 	 */
 	server_ipaddr.af = AF_INET;
@@ -756,7 +764,7 @@ int main(int argc, char **argv)
 	/*
 	 *	Encode the packet
 	 */
-	if (fr_dhcp_encode(request) < 0) {
+	if (fr_dhcp_encode(dict_dhcp, request) < 0) {
 		ERROR("Failed encoding packet");
 		exit(1);
 	}

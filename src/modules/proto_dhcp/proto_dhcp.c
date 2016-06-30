@@ -147,7 +147,7 @@ static int dhcprelay_process_client_request(REQUEST *request)
 	 */
 	dhcp_packet_debug(request, request->packet, false);
 
-	if (fr_dhcp_encode(request->packet) < 0) {
+	if (fr_dhcp_encode(dict_dhcp, request->packet) < 0) {
 		RERROR("Failed encoding DHCP packet: %s", fr_strerror());
 		return -1;
 	}
@@ -269,7 +269,7 @@ static int dhcprelay_process_server_reply(REQUEST *request)
 	 */
 	dhcp_packet_debug(request, request->packet, false);
 
-	if (fr_dhcp_encode(request->packet) < 0) {
+	if (fr_dhcp_encode(dict_dhcp, request->packet) < 0) {
 		RERROR("Failed encoding DHCP packet: %s", fr_strerror());
 		return -1;
 	}
@@ -889,7 +889,7 @@ static int dhcp_socket_send(rad_listen_t *listener, REQUEST *request)
 
 	if (request->reply->code == 0) return 0; /* don't reply */
 
-	if (fr_dhcp_encode(request->reply) < 0) {
+	if (fr_dhcp_encode(dict_dhcp, request->reply) < 0) {
 		RERROR("Failed encoding DHCP packet: %s", fr_strerror());
 		return -1;
 	}
@@ -1068,6 +1068,14 @@ static int dhcp_load(void)
 	DEBUG2("including dictionary file %s/dhcp/%s", main_config.dictionary_dir, FR_DICTIONARY_FILE);
 	ret = fr_dict_protocol_afrom_file(NULL, &dict_dhcp, main_config.dictionary_dir, "dhcp");
 	if (ret < 0) {
+		ERROR("%s", fr_strerror());
+		return ret;
+	}
+
+	/*
+	 *	Initialise DHCP library
+	 */
+	if (fr_dhcp_init(dict_dhcp) < 0) {
 		ERROR("%s", fr_strerror());
 		return ret;
 	}
