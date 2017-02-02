@@ -998,7 +998,7 @@ static int dhcp_socket_encode(UNUSED rad_listen_t *listener, UNUSED REQUEST *req
 
 static int dhcp_socket_decode(UNUSED rad_listen_t *listener, REQUEST *request)
 {
-	return fr_dhcp_decode(request->packet);
+	return fr_dhcp_decode(dict_dhcp, request->packet);
 }
 
 

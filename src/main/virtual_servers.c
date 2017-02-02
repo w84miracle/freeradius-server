@@ -89,11 +89,11 @@ static rlm_rcode_t module_method_call(rlm_components_t comp, int idx, REQUEST *r
 		       section_type_value[comp].section, cf_section_filename(cs));
 
 	} else {
-		fr_dict_attr_t const *da;
-		fr_dict_enum_t const *dv;
-		CONF_SECTION *subcs;
+		fr_dict_attr_t const	*da;
+		fr_dict_enum_t const	*dv;
+		CONF_SECTION		*subcs;
 
-		da = fr_dict_attr_by_num(NULL, 0, section_type_value[comp].attr);
+		da = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), section_type_value[comp].attr);
 		if (!da) return RLM_MODULE_FAIL;
 
 		dv = fr_dict_enum_by_da(da, idx);
@@ -321,7 +321,7 @@ static int load_component_section(CONF_SECTION *cs, rlm_components_t comp)
 	/*
 	 *	Find the attribute used to store VALUEs for this section.
 	 */
-	da = fr_dict_attr_by_num(NULL, 0, section_type_value[comp].attr);
+	da = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), section_type_value[comp].attr);
 	if (!da) {
 		cf_log_err_cs(cs,
 			      "No such attribute %s",
@@ -459,7 +459,7 @@ static bool virtual_server_define_types(CONF_SECTION *cs, rlm_components_t comp)
 	/*
 	 *	Find the attribute used to store VALUEs for this section.
 	 */
-	da = fr_dict_attr_by_num(NULL, 0, section_type_value[comp].attr);
+	da = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), section_type_value[comp].attr);
 	if (!da) {
 		cf_log_err_cs(cs,
 			      "No such attribute %s",

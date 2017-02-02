@@ -56,7 +56,7 @@ ssize_t		fr_dhcp_decode_option(TALLOC_CTX *ctx, vp_cursor_t *cursor,
 				      fr_dict_attr_t const *parent, uint8_t const *data, size_t len,
 				      void *decoder_ctx);
 
-int		fr_dhcp_decode(RADIUS_PACKET *packet);
+int		fr_dhcp_decode(fr_dict_t *dict, RADIUS_PACKET *packet);
 
 #ifdef HAVE_LINUX_IF_PACKET_H
 #include <linux/if_packet.h>

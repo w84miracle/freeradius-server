@@ -221,7 +221,7 @@ static int mod_instantiate(UNUSED CONF_SECTION *conf, void *instance)
 
 	paircompare_register_by_name(fr_dict_internal,
 				     "test-Paircmp",
-				     fr_dict_attr_by_num(dict_radius, 0, PW_USER_NAME),
+				     fr_dict_attr_child_by_num(fr_dict_root(dict_radius), PW_USER_NAME),
 				     false,
 				     rlm_test_cmp,
 				     inst);

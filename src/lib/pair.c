@@ -130,7 +130,7 @@ VALUE_PAIR *fr_pair_afrom_num(TALLOC_CTX *ctx, unsigned int vendor, unsigned int
 {
 	fr_dict_attr_t const *da;
 
-	da = fr_dict_attr_by_num(NULL, vendor, attr);
+	da = fr_dict_attr_by_num(fr_dict_internal, vendor, attr);
 	if (!da) {
 		VALUE_PAIR *vp;
 

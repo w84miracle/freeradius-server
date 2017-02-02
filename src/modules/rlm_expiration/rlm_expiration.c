@@ -107,7 +107,9 @@ static int mod_instantiate(UNUSED CONF_SECTION *conf, void *instance)
 	/*
 	 *	Register the expiration comparison operation.
 	 */
-	paircompare_register(fr_dict_attr_by_num(NULL, 0, PW_EXPIRATION), NULL, false, expirecmp, instance);
+	paircompare_register(fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), PW_EXPIRATION),
+			     NULL, false, expirecmp, instance);
+
 	return 0;
 }
 

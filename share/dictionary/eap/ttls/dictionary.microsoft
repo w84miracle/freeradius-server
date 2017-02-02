@@ -1,0 +1,22 @@
+# -*- text -*-
+# Copyright (C) 2015 The FreeRADIUS Server project and contributors
+#
+#	Microsoft's VSA's, from RFC 2548
+#
+#	$Id$
+#
+
+VENDOR		Microsoft			311
+
+BEGIN-VENDOR	Microsoft
+ATTRIBUTE	MS-CHAP-Response			1	octets[50]
+ATTRIBUTE	MS-CHAP-Error				2	string
+ATTRIBUTE	MS-CHAP-NT-Enc-PW			6	octets
+
+ATTRIBUTE	MS-CHAP-Domain				10	string
+ATTRIBUTE	MS-CHAP-Challenge			11	octets
+
+ATTRIBUTE	MS-CHAP2-Response			25	octets[50]
+ATTRIBUTE	MS-CHAP2-Success			26	octets
+ATTRIBUTE	MS-CHAP2-CPW				27	octets[68]
+END-VENDOR	Microsoft

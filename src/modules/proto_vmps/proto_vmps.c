@@ -92,7 +92,7 @@ static void vmps_running(REQUEST *request, fr_state_action_t action)
 			}
 
 		} else if (rcode != RLM_MODULE_HANDLED) {
-			da = fr_dict_attr_by_num(NULL, 0, 0x2b00);
+			da = fr_dict_attr_child_by_num(fr_dict_root(dict_vqp), 0x2b00);
 			rad_assert(da != NULL);
 
 			if (request->packet->code == 1) {

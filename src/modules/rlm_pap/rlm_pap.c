@@ -108,7 +108,8 @@ static int mod_instantiate(CONF_SECTION *conf, void *instance)
 		inst->name = cf_section_name1(conf);
 	}
 
-	dval = fr_dict_enum_by_name(fr_dict_attr_by_num(NULL, 0, PW_AUTH_TYPE), inst->name);
+	dval = fr_dict_enum_by_name(fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal),
+							      PW_AUTH_TYPE), inst->name);
 	if (dval) {
 		inst->auth_type = dval->value;
 	} else {

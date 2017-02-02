@@ -1,0 +1,10 @@
+# -*- text -*-
+# Copyright (C) 2017 The FreeRADIUS Server project and contributors
+#
+#	Master dictionary file
+#
+#	$Id$
+#
+
+$INCLUDE dictionary.rfc5281
+$INCLUDE dictionary.microsoft

@@ -430,7 +430,7 @@ VALUE_PAIR *eap_fast_fast2vp(REQUEST *request, SSL *ssl, uint8_t const *data, si
 	fr_dict_attr_t const *da;
 
 	if (!fast_da)
-		fast_da = fr_dict_attr_by_num(NULL, 0, PW_EAP_FAST_TLV);
+		fast_da = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), PW_EAP_FAST_TLV);
 	rad_assert(fast_da != NULL);
 
 	if (!out) {

@@ -174,7 +174,7 @@ static int mod_bootstrap(UNUSED CONF_SECTION *conf, void *instance)
 	/*
 	 *	Fixup dictionary entry for DHCP-Paramter-Request-List adding all the options
 	 */
-	da = fr_dict_attr_by_num(NULL, DHCP_MAGIC_VENDOR, PW_DHCP_PARAMETER_REQUEST_LIST);
+	da = fr_dict_attr_child_by_num(fr_dict_root(dict_dhcp), PW_DHCP_PARAMETER_REQUEST_LIST);
 	if (da) {
 		fr_dict_attr_t const *value;
 		int i;
@@ -182,7 +182,7 @@ static int mod_bootstrap(UNUSED CONF_SECTION *conf, void *instance)
 		/* No padding or termination options */
 		DEBUG3("Adding values for %s", da->name);
 		for (i = 1; i < 255; i++) {
-			value = fr_dict_attr_by_num(NULL, DHCP_MAGIC_VENDOR, i);
+			value = fr_dict_attr_child_by_num(fr_dict_root(dict_dhcp), i);
 			if (!value) {
 				DEBUG3("No DHCP RFC space attribute at %i", i);
 				continue;

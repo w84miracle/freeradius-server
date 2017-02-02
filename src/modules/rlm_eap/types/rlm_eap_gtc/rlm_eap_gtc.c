@@ -201,7 +201,8 @@ static int mod_instantiate(UNUSED rlm_eap_config_t const *config, void *instance
 		return -1;
 	}
 
-	dval = fr_dict_enum_by_name(fr_dict_attr_by_num(NULL, 0, PW_AUTH_TYPE), inst->auth_type_name);
+	dval = fr_dict_enum_by_name(fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), PW_AUTH_TYPE),
+				    inst->auth_type_name);
 	if (!dval) {
 		cf_log_err_by_name(cs, "auth_type", "Unknown Auth-Type %s",
 				   inst->auth_type_name);

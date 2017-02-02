@@ -603,7 +603,8 @@ static int mod_instantiate(CONF_SECTION *conf, void *instance)
 	/*
 	 *	For backwards compatibility
 	 */
-	if (!fr_dict_enum_by_name(fr_dict_attr_by_num(NULL, 0, PW_AUTH_TYPE), inst->xlat_name)) {
+	if (!fr_dict_enum_by_name(fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal),
+							    PW_AUTH_TYPE), inst->xlat_name)) {
 		inst->auth_type = "MS-CHAP";
 	} else {
 		inst->auth_type = inst->xlat_name;

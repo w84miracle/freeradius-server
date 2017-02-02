@@ -315,7 +315,7 @@ static rlm_rcode_t CC_HINT(nonnull) mod_authorize(void *instance, UNUSED void *t
 		fr_pair_value_bstrncpy(vp, passcode, inst->id_len);
 	}
 
-	dval = fr_dict_enum_by_name(fr_dict_attr_by_num(NULL, 0, PW_AUTH_TYPE), inst->name);
+	dval = fr_dict_enum_by_name(fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), PW_AUTH_TYPE), inst->name);
 	if (dval) {
 		vp = radius_pair_create(request, &request->control, PW_AUTH_TYPE, 0);
 		vp->vp_integer = dval->value;

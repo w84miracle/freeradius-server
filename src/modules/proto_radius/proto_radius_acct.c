@@ -71,7 +71,7 @@ static void acct_running(REQUEST *request, fr_state_action_t action)
 		request->server_cs = request->listener->server_cs;
 		request->component = "radius";
 
-		da = fr_dict_attr_by_num(NULL, 0, PW_PACKET_TYPE);
+		da = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), PW_PACKET_TYPE);
 		rad_assert(da != NULL);
 		dv = fr_dict_enum_by_da(da, request->packet->code);
 		if (!dv) {
@@ -139,7 +139,7 @@ static void acct_running(REQUEST *request, fr_state_action_t action)
 			}
 		}
 
-		if (!da) da = fr_dict_attr_by_num(NULL, 0, PW_PACKET_TYPE);
+		if (!da) da = fr_dict_attr_child_by_num(fr_dict_root(dict_radius), PW_PACKET_TYPE);
 		rad_assert(da != NULL);
 
 		dv = fr_dict_enum_by_da(da, request->reply->code);

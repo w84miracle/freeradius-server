@@ -203,7 +203,7 @@ int listen_bootstrap(CONF_SECTION *server, CONF_SECTION *cs, char const *server_
 		if (!module) return -1;
 		proto = (rad_protocol_t const *)module->common;
 
-		da = fr_dict_attr_by_num(fr_dict_internal, 0, PW_LISTEN_SOCKET_TYPE);
+		da = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), PW_LISTEN_SOCKET_TYPE);
 
 		/*
 		 *	We need numbers for internal use.
@@ -242,7 +242,7 @@ int listen_bootstrap(CONF_SECTION *server, CONF_SECTION *cs, char const *server_
 	/*
 	 *	The type MUST now be defined in the dictionaries.
 	 */
-	dv = fr_dict_enum_by_name(fr_dict_attr_by_num(NULL, 0, PW_LISTEN_SOCKET_TYPE), value);
+	dv = fr_dict_enum_by_name(fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), PW_LISTEN_SOCKET_TYPE), value);
 	if (!dv) {
 		cf_log_err_cs(cs, "Failed finding dictionary entry for protocol %s", value);
 		talloc_const_free(module);
@@ -624,6 +624,7 @@ static int init_pcap(rad_listen_t *this);
 rlm_rcode_t rad_status_server(REQUEST *request)
 {
 	rlm_rcode_t		rcode = RLM_MODULE_OK;
+	fr_dict_attr_t const	*da;
 	fr_dict_enum_t		*dval;
 
 	switch (request->listener->type) {
@@ -631,7 +632,8 @@ rlm_rcode_t rad_status_server(REQUEST *request)
 	case RAD_LISTEN_NONE:
 #endif
 	case RAD_LISTEN_AUTH:
-		dval = fr_dict_enum_by_name(fr_dict_attr_by_num(NULL, 0, PW_AUTZ_TYPE), "Status-Server");
+		da = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), PW_AUTZ_TYPE);
+		dval = fr_dict_enum_by_name(da, "Status-Server");
 		if (dval) {
 			rcode = process_authorize(dval->value, request);
 		} else {
@@ -658,7 +660,8 @@ rlm_rcode_t rad_status_server(REQUEST *request)
 
 #ifdef WITH_ACCOUNTING
 	case RAD_LISTEN_ACCT:
-		dval = fr_dict_enum_by_name(fr_dict_attr_by_num(NULL, 0, PW_ACCT_TYPE), "Status-Server");
+		da = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), PW_ACCT_TYPE);
+		dval = fr_dict_enum_by_name(da, "Status-Server");
 		if (dval) {
 			rcode = process_accounting(dval->value, request);
 		} else {
@@ -685,7 +688,8 @@ rlm_rcode_t rad_status_server(REQUEST *request)
 		 *	the WG.  We like it, so it goes in here.
 		 */
 	case RAD_LISTEN_COA:
-		dval = fr_dict_enum_by_name(fr_dict_attr_by_num(NULL, 0, PW_RECV_COA_TYPE), "Status-Server");
+		da = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), PW_RECV_COA_TYPE);
+		dval = fr_dict_enum_by_name(da, "Status-Server");
 		if (dval) {
 			rcode = process_recv_coa(dval->value, request);
 		} else {

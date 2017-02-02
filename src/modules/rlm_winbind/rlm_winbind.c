@@ -307,7 +307,14 @@ static int mod_bootstrap(CONF_SECTION *conf, void *instance)
 	char const		*group_attribute;
 	char			buffer[256];
 
-	user_name_da = fr_dict_attr_by_num(NULL, 0, PW_USER_NAME);
+	fr_dict_t		*dict_radius = fr_dict_by_protocol_num(PROTOCOL_RADIUS);
+
+	if (!dict_radius) {
+		cf_log_err_cs(conf, "rlm_unix requires the RADIUS dictionary");
+		return -1;
+	}
+
+	user_name_da = fr_dict_attr_child_by_num(dict_radius->root, PW_USER_NAME);
 	if (!user_name_da) {
 		ERROR("Unable to find User-Name attribute in dictionary");
 		return -1;

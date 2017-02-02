@@ -254,6 +254,14 @@ chbind_packet_t *eap_chbind_vp2packet(TALLOC_CTX *ctx, VALUE_PAIR *vps)
 	chbind_packet_t		*packet;
 	vp_cursor_t		cursor;
 
+	fr_dict_attr_t const	*vendor;
+
+	vendor = fr_dict_vendor_attr_by_num(fr_dict_radius, PW_VENDOR_SPECIFIC, VENDORPEC_UKERNA);
+	if (!vendor) {
+		ERROR("%s", fr_strerror());
+		return NULL;
+	}
+
 	first = fr_pair_find_by_num(vps, VENDORPEC_UKERNA, PW_UKERNA_CHBIND, TAG_ANY);
 	if (!first) return NULL;
 
@@ -294,9 +302,16 @@ chbind_packet_t *eap_chbind_vp2packet(TALLOC_CTX *ctx, VALUE_PAIR *vps)
 
 VALUE_PAIR *eap_chbind_packet2vp(REQUEST *request, chbind_packet_t *packet)
 {
-	VALUE_PAIR	*vp;
+	VALUE_PAIR		*vp;
+	fr_dict_attr_t const	*vendor;
 
 	if (!packet) return NULL; /* don't produce garbage */
+
+	vendor = fr_dict_vendor_attr_by_num(fr_dict_radius, PW_VENDOR_SPECIFIC, VENDORPEC_UKERNA);
+	if (!vendor) {
+		RERROR("%s", fr_strerror());
+		return NULL;
+	}
 
 	vp = fr_pair_afrom_num(request->packet, VENDORPEC_UKERNA, PW_UKERNA_CHBIND);
 	if (!vp) return NULL;

@@ -87,6 +87,8 @@ static uint8_t eth_bcast[ETH_ADDR_LEN] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 }
 #endif
 
+extern fr_dict_t *dict_dhcp;
+
 static RADIUS_PACKET *fr_dhcp_packet_ok(uint8_t const *data, ssize_t data_len, fr_ipaddr_t src_ipaddr,
 					uint16_t src_port, fr_ipaddr_t dst_ipaddr, uint16_t dst_port);
 
@@ -1048,21 +1050,6 @@ ssize_t fr_dhcp_decode_option(TALLOC_CTX *ctx, vp_cursor_t *cursor,
 	FR_PROTO_HEX_DUMP(NULL, data, data_len);
 
 	/*
-	 *	Stupid hacks until we have protocol specific dictionaries
-	 */
-	parent = fr_dict_attr_child_by_num(parent, PW_VENDOR_SPECIFIC);
-	if (!parent) {
-		fr_strerror_printf("Can't find Vendor-Specific (26)");
-		return -1;
-	}
-
-	parent = fr_dict_attr_child_by_num(parent, DHCP_MAGIC_VENDOR);
-	if (!parent) {
-		fr_strerror_printf("Can't find DHCP vendor");
-		return -1;
-	}
-
-	/*
 	 *	Padding / End of options
 	 */
 	if (p[0] == 0) return 1;		/* 0x00 - Padding option */
@@ -1109,7 +1096,7 @@ ssize_t fr_dhcp_decode_option(TALLOC_CTX *ctx, vp_cursor_t *cursor,
 	return ret;
 }
 
-int fr_dhcp_decode(RADIUS_PACKET *packet)
+int fr_dhcp_decode(fr_dict_t *dict, RADIUS_PACKET *packet)
 {
 	size_t i;
 	uint8_t *p;
@@ -1242,7 +1229,7 @@ int fr_dhcp_decode(RADIUS_PACKET *packet)
 		 *	Loop over all the options data
 		 */
 		while (p < end) {
-			len = fr_dhcp_decode_option(packet, &cursor, fr_dict_root(fr_dict_internal),
+			len = fr_dhcp_decode_option(packet, &cursor, fr_dict_root(dict),
 						    p, ((end - p) > UINT8_MAX) ? UINT8_MAX : (end - p), NULL);
 			if (len <= 0) {
 				fr_pair_list_free(&head);
@@ -2239,7 +2226,7 @@ RADIUS_PACKET *fr_dhcp_recv_raw_packet(int sockfd, struct sockaddr_ll *link_laye
  */
 int dhcp_init(void)
 {
-	dhcp_option_82 = fr_dict_attr_by_num(NULL, DHCP_MAGIC_VENDOR, PW_DHCP_OPTION_82);
+	dhcp_option_82 = fr_dict_attr_child_by_num(fr_dict_root(dict_dhcp), PW_DHCP_OPTION_82);
 	if (!dhcp_option_82) {
 		fr_strerror_printf("Missing dictionary attribute for DHCP-Option-82");
 		return -1;

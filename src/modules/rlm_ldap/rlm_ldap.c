@@ -1463,7 +1463,7 @@ static int mod_bootstrap(CONF_SECTION *conf, void *instance)
 
 	if (paircompare_register_by_name(fr_dict_internal,
 					 group_attribute,
-					 fr_dict_attr_by_num(dict_radius, 0, PW_USER_NAME),
+					 fr_dict_attr_child_by_num(fr_dict_root(dict_radius), PW_USER_NAME),
 					 false,
 					 rlm_ldap_groupcmp,
 					 inst) < 0) {

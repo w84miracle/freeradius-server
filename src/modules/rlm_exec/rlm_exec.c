@@ -242,7 +242,8 @@ static int mod_bootstrap(CONF_SECTION *conf, void *instance)
 	} else {
 		fr_dict_enum_t	*dval;
 
-		dval = fr_dict_enum_by_name(fr_dict_attr_by_num(NULL, 0, PW_PACKET_TYPE), inst->packet_type);
+		dval = fr_dict_enum_by_name(fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), PW_PACKET_TYPE),
+					    inst->packet_type);
 		if (!dval) {
 			cf_log_err_cs(conf, "Unknown packet type %s: See list of VALUEs for Packet-Type in "
 				      "share/dictionary", inst->packet_type);
@@ -265,7 +266,8 @@ static int mod_bootstrap(CONF_SECTION *conf, void *instance)
 	 *	Blocking a request longer than max_request_time isn't going to help anyone.
 	 */
 	if (inst->timeout > main_config.max_request_time) {
-		cf_log_err_cs(conf, "Timeout '%d' is too large (maximum: %d)", inst->timeout, main_config.max_request_time);
+		cf_log_err_cs(conf, "Timeout '%d' is too large (maximum: %d)", inst->timeout,
+			      main_config.max_request_time);
 		return -1;
 	}
 

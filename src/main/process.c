@@ -2284,7 +2284,7 @@ static int process_proxy_reply(REQUEST *request, RADIUS_PACKET *reply)
 	 */
 	if (!vp && reply) {
 		fr_dict_enum_t *dval = NULL;
-		fr_dict_attr_t const *da = fr_dict_attr_by_num(NULL, 0, PW_POST_PROXY_TYPE);
+		fr_dict_attr_t const *da = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), PW_POST_PROXY_TYPE);
 
 		switch (reply->code) {
 		case PW_CODE_ACCESS_REJECT:
@@ -2545,7 +2545,7 @@ global_stats:
 static int setup_post_proxy_fail(REQUEST *request)
 {
 	fr_dict_enum_t const *dval = NULL;
-	fr_dict_attr_t const *da = fr_dict_attr_by_num(NULL, 0, PW_POST_PROXY_TYPE);
+	fr_dict_attr_t const *da = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), PW_POST_PROXY_TYPE);
 	VALUE_PAIR *vp;
 	char buffer[256];
 

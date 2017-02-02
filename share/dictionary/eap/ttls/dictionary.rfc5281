@@ -1,0 +1,14 @@
+# -*- text -*-
+# Copyright (C) 2017 The FreeRADIUS Server project and contributors
+#
+#	RADIUS/Diameter namespace attributes allowed as TTLS AVPs by RFC 5281.
+#
+#	$Id$
+#
+
+ATTRIBUTE	User-Name				1	string
+ATTRIBUTE	User-Password				2	string
+ATTRIBUTE	CHAP-Password				3	octets
+ATTRIBUTE	Reply-Message				18	string
+ATTRIBUTE	CHAP-Challenge				60	octets
+

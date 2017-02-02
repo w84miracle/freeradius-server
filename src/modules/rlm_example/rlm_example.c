@@ -90,7 +90,7 @@ static int mod_instantiate(CONF_SECTION *conf, void *instance)
 
 	paircompare_register_by_name(fr_dict_internal,
 				     "Example-Paircmp",
-				     fr_dict_attr_by_num(dict_radius, 0, PW_USER_NAME),
+				     fr_dict_attr_child_by_num(fr_dict_root(dict_radius), PW_USER_NAME),
 				     false,
 				     rlm_example_cmp,
 				     inst);

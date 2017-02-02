@@ -307,7 +307,7 @@ static ssize_t cond_tokenize_cast(char const *start, fr_dict_attr_t const **pda,
 		return -(p - start);
 	}
 
-	*pda = fr_dict_attr_by_num(NULL, 0, PW_CAST_BASE + cast);
+	*pda = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), PW_CAST_BASE + cast);
 	if (!*pda) {
 		*error = "Cannot cast to this data type";
 		return -(p - start);
@@ -524,7 +524,8 @@ static ssize_t cond_tokenize(TALLOC_CTX *ctx, CONF_ITEM *ci, char const *start, 
 				return_P("Empty octet string is invalid");
 			}
 
-			c->cast = fr_dict_attr_by_num(NULL, 0, PW_CAST_BASE + PW_TYPE_OCTETS);
+			c->cast = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal),
+							    PW_CAST_BASE + PW_TYPE_OCTETS);
 		}
 
 		while (isspace((int)*p)) p++; /* skip spaces after LHS */
@@ -797,7 +798,8 @@ static ssize_t cond_tokenize(TALLOC_CTX *ctx, CONF_ITEM *ci, char const *start, 
 				      (map->lhs->tmpl_da->type == PW_TYPE_SHORT) ||
 				      (map->lhs->tmpl_da->type == PW_TYPE_INTEGER) ||
 				      (map->lhs->tmpl_da->type == PW_TYPE_INTEGER64))) {
-					c->cast = fr_dict_attr_by_num(NULL, 0, PW_CAST_BASE + PW_TYPE_OCTETS);
+					c->cast = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal),
+									    PW_CAST_BASE + PW_TYPE_OCTETS);
 				}
 			}
 
@@ -1064,14 +1066,16 @@ static ssize_t cond_tokenize(TALLOC_CTX *ctx, CONF_ITEM *ci, char const *start, 
 					case PW_TYPE_IPV4_ADDR:
 						if (strchr(c->data.map->rhs->name, '/') != NULL) {
 							type = PW_TYPE_IPV4_PREFIX;
-							c->cast = fr_dict_attr_by_num(NULL, 0, PW_CAST_BASE + type);
+							c->cast = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal),
+											    PW_CAST_BASE + type);
 						}
 						break;
 
 					case PW_TYPE_IPV6_ADDR:
 						if (strchr(c->data.map->rhs->name, '/') != NULL) {
 							type = PW_TYPE_IPV6_PREFIX;
-							c->cast = fr_dict_attr_by_num(NULL, 0, PW_CAST_BASE + type);
+							c->cast = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal),
+											    PW_CAST_BASE + type);
 						}
 						break;
 
@@ -1131,13 +1135,15 @@ static ssize_t cond_tokenize(TALLOC_CTX *ctx, CONF_ITEM *ci, char const *start, 
 				     (c->data.map->rhs->type == TMPL_TYPE_XLAT_STRUCT) ||
 				     (c->data.map->rhs->type == TMPL_TYPE_EXEC))) {
 					if (c->data.map->lhs->tmpl_da->type == PW_TYPE_IPV4_ADDR) {
-						c->cast = fr_dict_attr_by_num(NULL, 0,
-									      PW_CAST_BASE + PW_TYPE_IPV4_PREFIX);
+						c->cast = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal),
+										    PW_CAST_BASE +
+										    PW_TYPE_IPV4_PREFIX);
 					}
 
 					if (c->data.map->lhs->tmpl_da->type == PW_TYPE_IPV6_ADDR) {
-						c->cast = fr_dict_attr_by_num(NULL, 0,
-									      PW_CAST_BASE + PW_TYPE_IPV6_PREFIX);
+						c->cast = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal),
+										    PW_CAST_BASE +
+										    PW_TYPE_IPV6_PREFIX);
 					}
 				}
 

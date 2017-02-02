@@ -313,7 +313,8 @@ static int mod_instantiate(UNUSED rlm_eap_config_t const *config, void *instance
 	 */
 	if (!inst->inner_eap_module) inst->inner_eap_module = "eap";
 
-	dv = fr_dict_enum_by_name(fr_dict_attr_by_num(NULL, 0, PW_AUTH_TYPE), inst->inner_eap_module);
+	dv = fr_dict_enum_by_name(fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), PW_AUTH_TYPE),
+				  inst->inner_eap_module);
 	if (!dv) {
 		WARN("Failed to find 'Auth-Type %s' section in virtual server %s.  "
 		     "The server cannot proxy inner-tunnel EAP packets",

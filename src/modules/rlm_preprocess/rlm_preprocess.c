@@ -59,6 +59,8 @@ static const CONF_PARSER module_config[] = {
 	CONF_PARSER_TERMINATOR
 };
 
+static fr_dict_attr_t const *alvarion_vendor;
+
 /*
  *     See if a VALUE_PAIR list contains Fall-Through = Yes
  */
@@ -166,16 +168,14 @@ static void alvarion_vsa_hack(VALUE_PAIR *vp)
 	int number = 1;
 	vp_cursor_t cursor;
 
-	for (vp = fr_pair_cursor_init(&cursor, &vp);
-	     vp;
-	     vp = fr_pair_cursor_next(&cursor)) {
-		fr_dict_attr_t const *da;
+	fr_pair_cursor_init(&cursor, &vp);
 
-		if (vp->da->vendor != 12394) continue;
+	while ((vp = fr_pair_cursor_next_by_ancestor(&cursor, alvarion_vendor, TAG_ANY))) {
+		fr_dict_attr_t const *da;
 
 		if (vp->vp_type != PW_TYPE_STRING) continue;
 
-		da = fr_dict_attr_by_num(NULL, 12394, number);
+		da = fr_dict_attr_child_by_num(alvarion_vendor, number);
 		if (!da) continue;
 
 		vp->da = da;
@@ -515,6 +515,15 @@ static int mod_instantiate(UNUSED CONF_SECTION *conf, void *instance)
 		if (ret < 0) {
 			ERROR("Error reading %s", inst->hints_file);
 
+			return -1;
+		}
+	}
+
+	if (inst->with_alvarion_vsa_hack) {
+		alvarion_vendor = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_radius), PW_VENDOR_SPECIFIC);
+		alvarion_vendor = fr_dict_attr_child_by_num(alvarion_vendor, 12394);
+		if (!alvarion_vendor) {
+			ERROR("with_alvarion_vsa_hack requires alvarion vendor");
 			return -1;
 		}
 	}

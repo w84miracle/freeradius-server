@@ -73,7 +73,7 @@ static inline void exfile_trigger_exec(exfile_t *ef, REQUEST *request, exfile_en
 
 	if (!ef->trigger_prefix) return;
 
-	da = fr_dict_attr_by_num(fr_dict_internal, 0, PW_EXFILE_NAME);
+	da = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), PW_EXFILE_NAME);
 	if (!da) {
 		ROPTIONAL(RERROR, ERROR, "Incomplete internal dictionary: Missing definition for \"Exfile-Name\"");
 		return;

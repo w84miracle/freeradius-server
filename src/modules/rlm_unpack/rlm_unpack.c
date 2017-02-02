@@ -142,7 +142,7 @@ static ssize_t unpack_xlat(UNUSED TALLOC_CTX *ctx, char **out, size_t outlen,
 		goto nothing;
 	}
 
-	da = fr_dict_attr_by_num(NULL, 0, PW_CAST_BASE + type);
+	da = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), PW_CAST_BASE + type);
 	if (!da) {
 		REDEBUG("Cannot decode type '%s'", data_type);
 		goto nothing;

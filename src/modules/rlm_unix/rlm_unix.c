@@ -140,13 +140,13 @@ static int mod_bootstrap(CONF_SECTION *conf, void *instance)
 	inst->name = cf_section_name2(conf);
 	if (!inst->name) inst->name = cf_section_name1(conf);
 
-	group_da = fr_dict_attr_by_num(fr_dict_internal, 0, PW_GROUP);
+	group_da = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), PW_GROUP);
 	if (!group_da) {
 		ERROR("&Group attribute not found in dictionary");
 		return -1;
 	}
 
-	user_name_da = fr_dict_attr_by_num(dict_radius, 0, PW_USER_NAME);
+	user_name_da = fr_dict_attr_child_by_num(fr_dict_root(dict_radius), PW_USER_NAME);
 	if (!user_name_da) {
 		ERROR("&User-Name attribute not found in dictionary");
 		return -1;
@@ -160,7 +160,7 @@ static int mod_bootstrap(CONF_SECTION *conf, void *instance)
 	{
 		fr_dict_attr_t const *group_name_da;
 
-		group_name_da = fr_dict_attr_by_num(fr_dict_internal, 0, PW_GROUP_NAME);
+		group_name_da = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_internal), PW_GROUP_NAME);
 		if (!group_name_da) {
 			ERROR("&Group-Name attribute not found in dictionary");
 			return -1;

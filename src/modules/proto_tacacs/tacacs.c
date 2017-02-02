@@ -794,7 +794,7 @@ int tacacs_send(RADIUS_PACKET * const packet, RADIUS_PACKET const * const origin
 	uint8_t			seq_no;
 	VALUE_PAIR 		*vp;
 
-	vp = fr_pair_find_by_child_num(original->vps, fr_dict_root(dict_tacacs), TACACS_VERSION_MAJOR);
+	vp = fr_pair_find_by_child_num(original->vps, fr_dict_root(dict_tacacs), PW_TACACS_VERSION_MINOR, TAG_ANY);
 	rad_assert(vp != NULL);
 	vminor = vp->vp_byte;
 

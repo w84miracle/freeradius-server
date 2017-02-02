@@ -317,7 +317,7 @@ static REQUEST *request_from_file(FILE *fp, RADCLIENT *client)
 			vp->vp_length += 2;
 			p[1] = vp->vp_length;
 
-			da = fr_dict_attr_by_num(NULL, 0, PW_DIGEST_ATTRIBUTES);
+			da = fr_dict_attr_child_by_num(fr_dict_root(fr_dict_radius), PW_DIGEST_ATTRIBUTES);
 			rad_assert(da != NULL);
 			vp->da = da;
 
