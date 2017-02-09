@@ -233,15 +233,14 @@ typedef struct CC_HINT(__packed__) tacacs_packet {
 	};
 } tacacs_packet_t;
 
-extern fr_dict_t *dict_tacacs;
-
-tacacs_type_t tacacs_type(RADIUS_PACKET const * const packet);
-char const * tacacs_lookup_packet_code(RADIUS_PACKET const * const packet);
-uint32_t tacacs_session_id(RADIUS_PACKET const * const packet);
-int tacacs_read_packet(RADIUS_PACKET * const packet, char const * const secret);
-int tacacs_decode(RADIUS_PACKET * const packet);
-int tacacs_encode(RADIUS_PACKET * const packet, char const * const secret);
-int tacacs_send(RADIUS_PACKET * const packet, RADIUS_PACKET const * const original, char const * const secret);
+tacacs_type_t tacacs_type(fr_dict_t const *dict, RADIUS_PACKET const * const packet);
+char const * tacacs_lookup_packet_code(fr_dict_t const *dict, RADIUS_PACKET const * const packet);
+uint32_t tacacs_session_id(fr_dict_t const *dict, RADIUS_PACKET const * const packet);
+int tacacs_read_packet(fr_dict_t const *dict, RADIUS_PACKET * const packet, char const * const secret);
+int tacacs_decode(fr_dict_t const *dict, RADIUS_PACKET * const packet);
+int tacacs_encode(fr_dict_t const *dict, RADIUS_PACKET * const packet, char const * const secret);
+int tacacs_send(fr_dict_t const *dict, RADIUS_PACKET * const packet,
+		RADIUS_PACKET const * const original, char const * const secret);
 
 extern fr_dict_attr_t const *dict_tacacs_root;
 

@@ -92,6 +92,7 @@ static char *my_secret = NULL;
 static fr_dict_t *dict_internal = NULL;
 static fr_dict_t *dict_radius = NULL;
 static fr_dict_t *dict_dhcp = NULL;
+static fr_dict_t *dict_tacacs = NULL;
 
 /*
  *	End of hacks for xlat
@@ -915,7 +916,7 @@ static void process_file(const char *root_dir, char const *filename)
 			}
 
 			packet->vps = head;
-			if (tacacs_encode(packet, NULL))
+			if (tacacs_encode(dict_tacacs, packet, NULL))
 				ERROR("BARF");
 
 			fr_pair_list_free(&head);
@@ -948,7 +949,7 @@ static void process_file(const char *root_dir, char const *filename)
 			packet->data = attr;
 			packet->data_len = len;
 
-			if (tacacs_decode(packet))
+			if (tacacs_decode(dict_tacacs, packet))
 				ERROR("BARF");
 
 			fr_pair_cursor_init(&cursor, &packet->vps);
@@ -1105,6 +1106,16 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+	if (fr_dict_protocol_afrom_file(autofree, &dict_tacacs, dict_dir, "tacacs") < 0) {
+		fr_perror("unit_test_attribute");
+		return 1;
+	}
+
+	if (fr_dhcp_init(dict_dhcp) < 0) {
+		fr_perror("unit_test_attribute");
+		return 1;
+	}
+
 	fr_dict_dump(dict_internal);
 
 	if (fr_dict_from_file(dict_internal, radius_dir, FR_DICTIONARY_FILE) == -1) {
@@ -1118,7 +1129,6 @@ int main(int argc, char *argv[])
 	}
 
 	my_secret = talloc_strdup(NULL, "testing123");
-
 
 	if (argc < 2) {
 		process_file(NULL, "-");

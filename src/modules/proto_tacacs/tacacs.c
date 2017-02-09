@@ -31,25 +31,25 @@
 
 #include "tacacs.h"
 
-tacacs_type_t tacacs_type(RADIUS_PACKET const * const packet)
+tacacs_type_t tacacs_type(fr_dict_t const *dict, RADIUS_PACKET const * const packet)
 {
 	VALUE_PAIR const *vp;
 
-	vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict_tacacs), PW_TACACS_PACKET_TYPE, TAG_ANY);
+	vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict), PW_TACACS_PACKET_TYPE, TAG_ANY);
 	rad_assert(vp != NULL);
 
 	return (tacacs_type_t)vp->vp_byte;
 }
 
-char const * tacacs_lookup_packet_code(RADIUS_PACKET const * const packet)
+char const * tacacs_lookup_packet_code(fr_dict_t const *dict, RADIUS_PACKET const * const packet)
 {
 	fr_dict_attr_t const *da;
 	fr_dict_enum_t const *dv;
 	tacacs_type_t type;
 
-	type = tacacs_type(packet);
+	type = tacacs_type(dict, packet);
 
-	da = fr_dict_attr_child_by_num(fr_dict_root(dict_tacacs), PW_TACACS_PACKET_TYPE);
+	da = fr_dict_attr_child_by_num(fr_dict_root(dict), PW_TACACS_PACKET_TYPE);
 	rad_assert(da != NULL);
 	dv = fr_dict_enum_by_da(da, type);
 	rad_assert(dv != NULL);
@@ -57,11 +57,11 @@ char const * tacacs_lookup_packet_code(RADIUS_PACKET const * const packet)
 	return dv->name;
 }
 
-uint32_t tacacs_session_id(RADIUS_PACKET const * const packet)
+uint32_t tacacs_session_id(fr_dict_t const *dict, RADIUS_PACKET const * const packet)
 {
 	VALUE_PAIR const *vp;
 
-	vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict_tacacs), PW_TACACS_SESSION_ID, TAG_ANY);
+	vp = fr_pair_find_by_child_num(packet->vps, fr_dict_root(dict), PW_TACACS_SESSION_ID, TAG_ANY);
 	rad_assert(vp != NULL);
 
 	return vp->vp_integer;
@@ -231,7 +231,7 @@ static int tacacs_xor(RADIUS_PACKET * const packet, char const *secret)
 	return 0;
 }
 
-int tacacs_encode(RADIUS_PACKET * const packet, char const * const secret)
+int tacacs_encode(fr_dict_t const *dict, RADIUS_PACKET * const packet, char const * const secret)
 {
 	uint8_t			*ptr;
 	uint16_t		length_hdr;
@@ -264,10 +264,12 @@ int tacacs_encode(RADIUS_PACKET * const packet, char const * const secret)
 		: TAC_PLUS_UNENCRYPTED_FLAG;
 
 	length_body = 0;
-	for (vp = fr_pair_cursor_init(&cursor, &packet->vps); vp != NULL; vp = fr_pair_cursor_next(&cursor)) {
+	fr_pair_cursor_init(&cursor, &packet->vps);
+	while ((vp = fr_pair_cursor_next_by_ancestor(&cursor, fr_dict_root(dict), TAG_ANY))) {
 		VERIFY_VP(vp);
 
 		if (!vp->da->flags.internal) continue;
+		if (vp->da->depth >= 2) continue;
 
 		switch (vp->da->attr) {
 		case PW_TACACS_VERSION_MINOR:
@@ -405,7 +407,7 @@ skip_fields:
 	return 0;
 }
 
-int tacacs_decode(RADIUS_PACKET * const packet)
+int tacacs_decode(fr_dict_t const *dict, RADIUS_PACKET * const packet)
 {
 	tacacs_packet_t *pkt = (tacacs_packet_t *)packet->data;
 	vp_cursor_t cursor;
@@ -416,24 +418,24 @@ int tacacs_decode(RADIUS_PACKET * const packet)
 
 	fr_pair_cursor_init(&cursor, &packet->vps);
 
-	vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_VERSION_MINOR);
+	vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_VERSION_MINOR);
 	if (!vp) return -1;
 	vp->vp_byte = pkt->hdr.ver.minor;
 	fr_pair_cursor_append(&cursor, vp);
 
-	vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_PACKET_TYPE);
+	vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_PACKET_TYPE);
 	if (!vp) return -1;
 	vp->vp_byte = pkt->hdr.type;
 	fr_pair_cursor_append(&cursor, vp);
 
 	packet->code = pkt->hdr.type;
 
-	vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_SEQUENCE_NUMBER);
+	vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_SEQUENCE_NUMBER);
 	if (!vp) return -1;
 	vp->vp_byte = pkt->hdr.seq_no;
 	fr_pair_cursor_append(&cursor, vp);
 
-	vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_SESSION_ID);
+	vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_SESSION_ID);
 	if (!vp) return -1;
 	vp->vp_integer = ntohl(pkt->hdr.session_id);
 	fr_pair_cursor_append(&cursor, vp);
@@ -445,28 +447,28 @@ int tacacs_decode(RADIUS_PACKET * const packet)
 		case 1:
 			p = pkt->authen.start.body;
 
-			vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_ACTION);
+			vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_ACTION);
 			if (!vp) return -1;
 			vp->vp_byte = pkt->authen.start.action;
 			fr_pair_cursor_append(&cursor, vp);
 
-			vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_PRIVILEGE_LEVEL);
+			vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_PRIVILEGE_LEVEL);
 			if (!vp) return -1;
 			vp->vp_byte = pkt->authen.start.priv_lvl;
 			fr_pair_cursor_append(&cursor, vp);
 
-			vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_AUTHENTICATION_TYPE);
+			vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_AUTHENTICATION_TYPE);
 			if (!vp) return -1;
 			vp->vp_byte = pkt->authen.start.authen_type;
 			fr_pair_cursor_append(&cursor, vp);
 
-			vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_AUTHENTICATION_SERVICE);
+			vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_AUTHENTICATION_SERVICE);
 			if (!vp) return -1;
 			vp->vp_byte = pkt->authen.start.authen_service;
 			fr_pair_cursor_append(&cursor, vp);
 
 			if (pkt->authen.start.user_len) {
-				vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_USER_NAME);
+				vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_USER_NAME);
 				if (!vp) return -1;
 				fr_pair_value_bstrncpy(vp, p, pkt->authen.start.user_len);
 				p += vp->vp_length;
@@ -474,7 +476,7 @@ int tacacs_decode(RADIUS_PACKET * const packet)
 			}
 
 			if (pkt->authen.start.port_len) {
-				vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_CLIENT_PORT);
+				vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_CLIENT_PORT);
 				if (!vp) return -1;
 				fr_pair_value_bstrncpy(vp, p, pkt->authen.start.port_len);
 				p += vp->vp_length;
@@ -482,7 +484,7 @@ int tacacs_decode(RADIUS_PACKET * const packet)
 			}
 
 			if (pkt->authen.start.rem_addr_len) {
-				vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_REMOTE_ADDRESS);
+				vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_REMOTE_ADDRESS);
 				if (!vp) return -1;
 				fr_pair_value_bstrncpy(vp, p, pkt->authen.start.rem_addr_len);
 				p += vp->vp_length;
@@ -490,7 +492,7 @@ int tacacs_decode(RADIUS_PACKET * const packet)
 			}
 
 			if (pkt->authen.start.data_len) {
-				vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_DATA);
+				vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_DATA);
 				if (!vp) return -1;
 				fr_pair_value_bstrncpy(vp, p, pkt->authen.start.data_len);
 				fr_pair_cursor_append(&cursor, vp);
@@ -501,7 +503,7 @@ int tacacs_decode(RADIUS_PACKET * const packet)
 			p = pkt->authen.cont.body;
 
 			if (pkt->authen.cont.user_msg_len) {
-				vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_USER_MESSAGE);
+				vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_USER_MESSAGE);
 				if (!vp) return -1;
 				fr_pair_value_bstrncpy(vp, p, ntohs(pkt->authen.cont.user_msg_len));
 				p += vp->vp_length;
@@ -509,7 +511,7 @@ int tacacs_decode(RADIUS_PACKET * const packet)
 			}
 
 			if (pkt->authen.cont.data_len) {
-				vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_DATA);
+				vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_DATA);
 				if (!vp) return -1;
 				fr_pair_value_bstrncpy(vp, p, ntohs(pkt->authen.cont.data_len));
 				fr_pair_cursor_append(&cursor, vp);
@@ -527,28 +529,28 @@ int tacacs_decode(RADIUS_PACKET * const packet)
 		p = pkt->author.req.body;
 		p += pkt->author.req.arg_cnt;
 
-		vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_AUTHENTICATION_METHOD);
+		vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_AUTHENTICATION_METHOD);
 		if (!vp) return -1;
 		vp->vp_byte = pkt->author.req.authen_method;
 		fr_pair_cursor_append(&cursor, vp);
 
-		vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_PRIVILEGE_LEVEL);
+		vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_PRIVILEGE_LEVEL);
 		if (!vp) return -1;
 		vp->vp_byte = pkt->author.req.priv_lvl;
 		fr_pair_cursor_append(&cursor, vp);
 
-		vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_AUTHENTICATION_TYPE);
+		vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_AUTHENTICATION_TYPE);
 		if (!vp) return -1;
 		vp->vp_byte = pkt->author.req.authen_type;
 		fr_pair_cursor_append(&cursor, vp);
 
-		vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_AUTHENTICATION_SERVICE);
+		vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_AUTHENTICATION_SERVICE);
 		if (!vp) return -1;
 		vp->vp_byte = pkt->author.req.authen_service;
 		fr_pair_cursor_append(&cursor, vp);
 
 		if (pkt->author.req.user_len) {
-			vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_USER_NAME);
+			vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_USER_NAME);
 			if (!vp) return -1;
 			fr_pair_value_bstrncpy(vp, p, pkt->author.req.user_len);
 			p += vp->vp_length;
@@ -556,7 +558,7 @@ int tacacs_decode(RADIUS_PACKET * const packet)
 		}
 
 		if (pkt->author.req.port_len) {
-			vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_CLIENT_PORT);
+			vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_CLIENT_PORT);
 			if (!vp) return -1;
 			fr_pair_value_bstrncpy(vp, p, pkt->author.req.port_len);
 			p += vp->vp_length;
@@ -564,7 +566,7 @@ int tacacs_decode(RADIUS_PACKET * const packet)
 		}
 
 		if (pkt->author.req.rem_addr_len) {
-			vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_REMOTE_ADDRESS);
+			vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_REMOTE_ADDRESS);
 			if (!vp) return -1;
 			fr_pair_value_bstrncpy(vp, p, pkt->author.req.rem_addr_len);
 			fr_pair_cursor_append(&cursor, vp);
@@ -578,46 +580,46 @@ int tacacs_decode(RADIUS_PACKET * const packet)
 		p += pkt->acct.req.arg_cnt;
 
 		if (pkt->acct.req.flags & TAC_PLUS_ACCT_FLAG_START) {
-			vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_ACCOUNTING_FLAGS);
+			vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_ACCOUNTING_FLAGS);
 			if (!vp) return -1;
 			vp->vp_byte = TAC_PLUS_ACCT_FLAG_START;
 			fr_pair_cursor_append(&cursor, vp);
 		}
 		if (pkt->acct.req.flags & TAC_PLUS_ACCT_FLAG_STOP) {
-			vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_ACCOUNTING_FLAGS);
+			vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_ACCOUNTING_FLAGS);
 			if (!vp) return -1;
 			vp->vp_byte = TAC_PLUS_ACCT_FLAG_STOP;
 			fr_pair_cursor_append(&cursor, vp);
 		}
 		if (pkt->acct.req.flags & TAC_PLUS_ACCT_FLAG_WATCHDOG) {
-			vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_ACCOUNTING_FLAGS);
+			vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_ACCOUNTING_FLAGS);
 			if (!vp) return -1;
 			vp->vp_byte = TAC_PLUS_ACCT_FLAG_WATCHDOG;
 			fr_pair_cursor_append(&cursor, vp);
 		}
 
-		vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_AUTHENTICATION_METHOD);
+		vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_AUTHENTICATION_METHOD);
 		if (!vp) return -1;
 		vp->vp_byte = pkt->acct.req.authen_method;
 		fr_pair_cursor_append(&cursor, vp);
 
-		vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_PRIVILEGE_LEVEL);
+		vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_PRIVILEGE_LEVEL);
 		if (!vp) return -1;
 		vp->vp_byte = pkt->acct.req.priv_lvl;
 		fr_pair_cursor_append(&cursor, vp);
 
-		vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_AUTHENTICATION_TYPE);
+		vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_AUTHENTICATION_TYPE);
 		if (!vp) return -1;
 		vp->vp_byte = pkt->acct.req.authen_type;
 		fr_pair_cursor_append(&cursor, vp);
 
-		vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_AUTHENTICATION_SERVICE);
+		vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_AUTHENTICATION_SERVICE);
 		if (!vp) return -1;
 		vp->vp_byte = pkt->acct.req.authen_service;
 		fr_pair_cursor_append(&cursor, vp);
 
 		if (pkt->acct.req.user_len) {
-		vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_USER_NAME);
+		vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_USER_NAME);
 		if (!vp) return -1;
 			fr_pair_value_bstrncpy(vp, p, pkt->acct.req.user_len);
 			p += vp->vp_length;
@@ -625,7 +627,7 @@ int tacacs_decode(RADIUS_PACKET * const packet)
 		}
 
 		if (pkt->acct.req.port_len) {
-		vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_CLIENT_PORT);
+		vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_CLIENT_PORT);
 		if (!vp) return -1;
 			fr_pair_value_bstrncpy(vp, p, pkt->acct.req.port_len);
 			p += vp->vp_length;
@@ -633,7 +635,7 @@ int tacacs_decode(RADIUS_PACKET * const packet)
 		}
 
 		if (pkt->acct.req.rem_addr_len) {
-			vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_REMOTE_ADDRESS);
+			vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_REMOTE_ADDRESS);
 			if (!vp) return -1;
 			fr_pair_value_bstrncpy(vp, p, pkt->acct.req.rem_addr_len);
 			fr_pair_cursor_append(&cursor, vp);
@@ -663,7 +665,7 @@ int tacacs_decode(RADIUS_PACKET * const packet)
  *	Calling this function MAY change sockfd,
  *	if src_ipaddr.af == AF_UNSPEC.
  */
-int tacacs_read_packet(RADIUS_PACKET * const packet, char const * const secret)
+int tacacs_read_packet(fr_dict_t const *dict_tacacs, RADIUS_PACKET * const packet, char const * const secret)
 {
 	ssize_t len;
 
@@ -787,14 +789,15 @@ int tacacs_read_packet(RADIUS_PACKET * const packet, char const * const secret)
 	return 1;	/* done reading the packet */
 }
 
-int tacacs_send(RADIUS_PACKET * const packet, RADIUS_PACKET const * const original, char const * const secret)
+int tacacs_send(fr_dict_t const *dict, RADIUS_PACKET * const packet,
+		RADIUS_PACKET const * const original, char const * const secret)
 {
 	uint8_t			vminor;
 	tacacs_type_t		type;
 	uint8_t			seq_no;
 	VALUE_PAIR 		*vp;
 
-	vp = fr_pair_find_by_child_num(original->vps, fr_dict_root(dict_tacacs), PW_TACACS_VERSION_MINOR, TAG_ANY);
+	vp = fr_pair_find_by_child_num(original->vps, fr_dict_root(dict), PW_TACACS_VERSION_MINOR, TAG_ANY);
 	rad_assert(vp != NULL);
 	vminor = vp->vp_byte;
 
@@ -803,13 +806,13 @@ int tacacs_send(RADIUS_PACKET * const packet, RADIUS_PACKET const * const origin
 	vp->vp_byte = vminor;
 	fr_pair_add(&packet->vps, vp);
 
-	type = tacacs_type(original);
+	type = tacacs_type(dict, original);
 
-	vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_PACKET_TYPE);
+	vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_PACKET_TYPE);
 	vp->vp_byte = type;
 	fr_pair_add(&packet->vps, vp);
 
-	vp = fr_pair_find_by_child_num(original->vps, fr_dict_root(dict_tacacs), PW_TACACS_SEQUENCE_NUMBER, TAG_ANY);
+	vp = fr_pair_find_by_child_num(original->vps, fr_dict_root(dict), PW_TACACS_SEQUENCE_NUMBER, TAG_ANY);
 	rad_assert(vp != NULL);
 	seq_no = vp->vp_byte + 1;	/* we catch client 255 on ingress */
 
@@ -818,12 +821,12 @@ int tacacs_send(RADIUS_PACKET * const packet, RADIUS_PACKET const * const origin
 	vp->vp_byte = seq_no;
 	fr_pair_add(&packet->vps, vp);
 
-	vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict_tacacs), PW_TACACS_SESSION_ID);
+	vp = fr_pair_afrom_child_num(packet, fr_dict_root(dict), PW_TACACS_SESSION_ID);
 	if (!vp) return -1;
-	vp->vp_integer = tacacs_session_id(original);
+	vp->vp_integer = tacacs_session_id(dict, original);
 	fr_pair_add(&packet->vps, vp);
 
-	if (tacacs_encode(packet, secret) < 0) {
+	if (tacacs_encode(dict, packet, secret) < 0) {
 		fr_strerror_printf("Failed encoding TACACS reply: %s", fr_syserror(errno));
 		return -1;
 	}

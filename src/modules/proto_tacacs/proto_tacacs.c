@@ -45,8 +45,8 @@ static void tacacs_packet_debug(REQUEST *request, RADIUS_PACKET *packet, bool re
 	radlog_request(L_DBG, L_DBG_LVL_1, request, "%s %s Id %u from %s%s%s:%i to %s%s%s:%i "
 		       "length %zu",
 		       received ? "Received" : "Sending",
-		       tacacs_lookup_packet_code(request->packet),
-		       tacacs_session_id(request->packet),
+		       tacacs_lookup_packet_code(dict_tacacs, request->packet),
+		       tacacs_session_id(dict_tacacs, request->packet),
 		       packet->src_ipaddr.af == AF_INET6 ? "[" : "",
 		       fr_inet_ntop(src_ipaddr, sizeof(src_ipaddr), &packet->src_ipaddr),
 		       packet->src_ipaddr.af == AF_INET6 ? "]" : "",
@@ -65,7 +65,7 @@ static void tacacs_status(REQUEST * const request, rlm_rcode_t rcode)
 	char const *k = "Unknown";
 	char const *v = "Unknown";
 
-	switch (tacacs_type(request->packet)) {
+	switch (tacacs_type(dict_tacacs, request->packet)) {
 	case TAC_PLUS_AUTHEN:
 		k = "TACACS-Authentication-Status";
 		switch (rcode) {
@@ -138,7 +138,7 @@ static void state_add(REQUEST *request, RADIUS_PACKET *packet)
 	/* session_id is per TCP connection */
 	memcpy(&buf[0], &request->listener, sizeof(request->listener));
 
-	session_id = tacacs_session_id(request->packet);
+	session_id = tacacs_session_id(dict_tacacs, request->packet);
 	memcpy(&buf[sizeof(buf) - sizeof(session_id)], &session_id, sizeof(session_id));
 
 	vp = fr_pair_afrom_child_num(packet, fr_dict_root(fr_dict_radius), PW_STATE);
@@ -171,7 +171,7 @@ static void tacacs_running(REQUEST *request, fr_state_action_t action)
 
 	switch (request->request_state) {
 	case REQUEST_INIT:
-		rc = tacacs_decode(request->packet);
+		rc = tacacs_decode(dict_tacacs, request->packet);
 		if (rc == -2)	/* client abort no reply */
 			goto done;
 		else if (rc < 0) {
@@ -185,7 +185,8 @@ static void tacacs_running(REQUEST *request, fr_state_action_t action)
 		request->server_cs = request->listener->server_cs;
 		request->component = "tacacs";
 
-		unlang = cf_section_sub_find_name2(request->server_cs, "recv", tacacs_lookup_packet_code(request->packet));
+		unlang = cf_section_sub_find_name2(request->server_cs, "recv",
+						   tacacs_lookup_packet_code(dict_tacacs, request->packet));
 		if (!unlang) unlang = cf_section_sub_find_name2(request->server_cs, "recv", "*");
 		if (!unlang) {
 			REDEBUG("Failed to find 'recv' section");
@@ -193,7 +194,7 @@ static void tacacs_running(REQUEST *request, fr_state_action_t action)
 		}
 
 		/* FIXME only for seq_id greater than 1 */
-		if (tacacs_type(request->packet) == TAC_PLUS_AUTHEN) {
+		if (tacacs_type(dict_tacacs, request->packet) == TAC_PLUS_AUTHEN) {
 			state_add(request, request->packet);
 			fr_state_to_request(global_state, request, request->packet);
 		}
@@ -209,7 +210,7 @@ static void tacacs_running(REQUEST *request, fr_state_action_t action)
 
 		if (request->master_state == REQUEST_STOP_PROCESSING) {
 stop_processing:
-			if (tacacs_type(request->packet) == TAC_PLUS_AUTHEN)
+			if (tacacs_type(dict_tacacs, request->packet) == TAC_PLUS_AUTHEN)
 				fr_state_discard(global_state, request, request->packet);
 			goto done;
 		}
@@ -340,7 +341,8 @@ stop_processing:
 setup_send:
 		unlang = NULL;
 		if (dv) {
-			unlang = cf_section_sub_find_name2(request->server_cs, "send", tacacs_lookup_packet_code(request->packet));
+			unlang = cf_section_sub_find_name2(request->server_cs, "send",
+							   tacacs_lookup_packet_code(dict_tacacs, request->packet));
 		}
 		if (!unlang) unlang = cf_section_sub_find_name2(request->server_cs, "send", "*");
 		if (!unlang) goto send_reply;
@@ -363,7 +365,7 @@ setup_send:
 send_reply:
 		gettimeofday(&request->reply->timestamp, NULL);
 
-		if (tacacs_type(request->packet) == TAC_PLUS_AUTHEN) {
+		if (tacacs_type(dict_tacacs, request->packet) == TAC_PLUS_AUTHEN) {
 			fr_dict_attr_t const *authda;
 
 			authda = fr_dict_attr_by_name(NULL, "TACACS-Authentication-Status");
@@ -407,7 +409,7 @@ send_reply:
 
 		if (RDEBUG_ENABLED) tacacs_packet_debug(request, request->reply, false);
 
-		if (tacacs_send(request->reply, request->packet, request->client->secret) < 0) {
+		if (tacacs_send(dict_tacacs, request->reply, request->packet, request->client->secret) < 0) {
 			RDEBUG("Failed sending TACACS reply: %s", fr_strerror());
 			goto done;
 		}
@@ -488,7 +490,7 @@ static int tacacs_socket_recv(rad_listen_t *listener)
 	 */
 	packet = sock->packet;
 
-	rcode = tacacs_read_packet(packet, client->secret);
+	rcode = tacacs_read_packet(dict_tacacs, packet, client->secret);
 	if (rcode == 0) return 0;	/* partial packet */
 	if (rcode == -1) {		/* error reading packet */
 		char buffer[256];
