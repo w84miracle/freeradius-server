@@ -136,7 +136,7 @@ static struct {
  *	This allows us to initialise PyThreadState on a per thread basis
  */
 fr_thread_local_setup(PyThreadState *, local_thread_state);	/* macro */
-
+static void read_from_request(VALUE_PAIR *vps,PyObject *pArgsm ,int placeat);
 
 /*
  *	Let assume that radiusd module is only one since we have only
@@ -434,7 +434,6 @@ static int do_python(rlm_python_t *inst, REQUEST *request, PyObject *pFunc, char
 
 	/* Default return value is "OK, continue" */
 	ret = RLM_MODULE_OK;
-
 	/*
 	 *	We will pass a tuple containing (name, value) tuples
 	 *	We can safely use the Python function to build up a
@@ -443,45 +442,32 @@ static int do_python(rlm_python_t *inst, REQUEST *request, PyObject *pFunc, char
 	 *	Determine the size of our tuple by walking through the packet.
 	 *	If request is NULL, pass None.
 	 */
-	tuplelen = 0;
-	if (request != NULL) {
-		for (vp = request->packet->vps; vp; vp = vp->next)
-			tuplelen++;
+	
+	if ((pArgs = PyTuple_New(5)) == NULL) {
+		ret = RLM_MODULE_FAIL;
+		goto finish;
+	}
+	//Modified by Allenh@
+	radlog(L_DBG, "CALL request");
+	read_from_request(request->packet->vps, pArgs,0);
+
+	radlog(L_DBG, "CALL reply");
+	read_from_request(request->reply->vps, pArgs,1);
+	
+	radlog(L_DBG, "CALL config_items");
+	read_from_request(request->config_items, pArgs,2);
+
+	if (request->proxy != NULL) {
+		radlog(L_DBG, "CALL proxy");
+		read_from_request(request->proxy->vps, pArgs,3);
+	}
+	if (request->proxy_reply !=NULL) {
+		radlog(L_DBG, "CALL proxy_reply");
+		read_from_request(request->proxy_reply->vps, pArgs,4);
 	}
 
-	if (tuplelen == 0) {
-		Py_INCREF(Py_None);
-		pArgs = Py_None;
-	} else {
-		int i = 0;
-		if ((pArgs = PyTuple_New(tuplelen)) == NULL) {
-			ret = RLM_MODULE_FAIL;
-			goto finish;
-		}
+	/* Call Python function with 2-dimentional tuple pArgs */
 
-		for (vp = request->packet->vps;
-		     vp != NULL;
-		     vp = vp->next, i++) {
-			PyObject *pPair;
-
-			/* The inside tuple has two only: */
-			if ((pPair = PyTuple_New(2)) == NULL) {
-				ret = RLM_MODULE_FAIL;
-				goto finish;
-			}
-
-			if (python_populate_vptuple(pPair, vp) == 0) {
-				/* Put the tuple inside the container */
-				PyTuple_SET_ITEM(pArgs, i, pPair);
-			} else {
-				Py_INCREF(Py_None);
-				PyTuple_SET_ITEM(pArgs, i, Py_None);
-				Py_DECREF(pPair);
-			}
-		}
-	}
-
-	/* Call Python function. */
 	pRet = PyObject_CallFunctionObjArgs(pFunc, pArgs, NULL);
 
 	if (!pRet) {
@@ -495,41 +481,72 @@ static int do_python(rlm_python_t *inst, REQUEST *request, PyObject *pFunc, char
 	}
 	/*
 	 *	The function returns either:
-	 *  1. (returnvalue, replyTuple, configTuple), where
+	 *	1. (returnvalue, requestTuple, replyTuple, configTuple, proxyRequestTuple, proxyReplyTuple)
+	 *   - returnvalue is one of the constants RLM_*
+	 *   - all the following tuples are tuples of string tuples of size 2
+	 *
+	 *  2. (returnvalue, replyTuple, configTuple), where
 	 *   - returnvalue is one of the constants RLM_*
 	 *   - replyTuple and configTuple are tuples of string
 	 *      tuples of size 2
 	 *
-	 *  2. the function return value alone
+	 *  3. the function return value alone
 	 *
-	 *  3. None - default return value is set
-	 *
+	 *  4. None - default return value is set
+	 *	
 	 * xxx This code is messy!
 	 */
 	if (PyTuple_CheckExact(pRet)) {
 		PyObject *pTupleInt;
 
-		if (PyTuple_GET_SIZE(pRet) != 3) {
+		if (PyTuple_GET_SIZE(pRet) == 3){
+			
+			pTupleInt = PyTuple_GET_ITEM(pRet, 0);
+			if (!PyInt_CheckExact(pTupleInt)) {
+				radlog(L_ERR, "rlm_python:%s: first tuple element not an integer", funcname);
+				ret = RLM_MODULE_FAIL;
+				goto finish;
+			}
+			ret = PyInt_AsLong(pTupleInt);
+			/* Reply item tuple */
+			python_vptuple(&request->reply->vps,
+				       PyTuple_GET_ITEM(pRet, 1), funcname);
+			/* Config item tuple */
+			python_vptuple(&request->config_items,
+				       PyTuple_GET_ITEM(pRet, 2), funcname);
+
+		}else if(PyTuple_GET_SIZE(pRet) == 6) {
+			pTupleInt = PyTuple_GET_ITEM(pRet, 0);
+			if (!PyInt_CheckExact(pTupleInt)) {
+				radlog(L_ERR, "rlm_python:%s: first tuple element not an integer", funcname);
+				ret = RLM_MODULE_FAIL;
+				goto finish;
+			}
+			ret = PyInt_AsLong(pTupleInt);
+			/* Request item tuple */
+			python_vptuple(&request->packet->vps, PyTuple_GET_ITEM(pRet, 1), funcname);
+
+			/* Reply item tuple */
+			python_vptuple(&request->reply->vps, PyTuple_GET_ITEM(pRet, 2), funcname);
+
+			/* Config item tuple */
+			python_vptuple(&request->config_items, PyTuple_GET_ITEM(pRet, 3), funcname);
+			
+			/* proxy_request item tuple */
+			if (request->proxy != NULL) {
+				python_vptuple(&request->proxy->vps, PyTuple_GET_ITEM(pRet, 4), funcname);
+			}
+			/* proxy_reply item tuple */
+			if (request->proxy_reply != NULL) {
+				python_vptuple(&request->proxy_reply->vps, PyTuple_GET_ITEM(pRet, 5), funcname);
+			}	
+			
+		}else{
 			radlog(L_ERR, "rlm_python:%s: tuple must be (return, replyTuple, configTuple)", funcname);
 			ret = RLM_MODULE_FAIL;
 			goto finish;
 		}
-
-		pTupleInt = PyTuple_GET_ITEM(pRet, 0);
-		if (!PyInt_CheckExact(pTupleInt)) {
-			radlog(L_ERR, "rlm_python:%s: first tuple element not an integer", funcname);
-			ret = RLM_MODULE_FAIL;
-			goto finish;
-		}
-		/* Now have the return value */
-		ret = PyInt_AsLong(pTupleInt);
-		/* Reply item tuple */
-		python_vptuple(&request->reply->vps,
-			       PyTuple_GET_ITEM(pRet, 1), funcname);
-		/* Config item tuple */
-		python_vptuple(&request->config_items,
-			       PyTuple_GET_ITEM(pRet, 2), funcname);
-
+	
 	} else if (PyInt_CheckExact(pRet)) {
 		/* Just an integer */
 		ret = PyInt_AsLong(pRet);
@@ -556,6 +573,46 @@ finish:
 #endif
 
 	return ret;
+}
+/*
+ * Convert requests' value pairs into python tuples
+ */
+static void read_from_request(VALUE_PAIR *vps,PyObject *pArgs,int placeat)
+{
+	int len = 0;
+	PyObject *tmptuple=NULL;
+	VALUE_PAIR *vp;
+	for (vp = vps; vp!=NULL; vp = vp->next){
+		len++;
+	}
+	radlog(L_DBG, "VALUE_PAIR LENGTH: %d", len);
+	if (len!=0){
+		int i = 0;
+		if ((tmptuple = PyTuple_New(len)) == NULL) {
+			radlog(L_ERR, "rlm_python:read_from_request new Tuple error");
+		}
+
+		for (vp = vps ; vp != NULL ; vp = vp->next, i++) {
+			PyObject *pPair;
+
+			/* The inside tuple has two only: */
+			if ((pPair = PyTuple_New(2)) == NULL) {
+				radlog(L_ERR, "rlm_python:read_from_request new Tuple error");
+			}
+
+			if (python_populate_vptuple(pPair, vp) == 0) {
+				PyTuple_SET_ITEM(tmptuple, i, pPair);
+			} else {
+				Py_INCREF(Py_None);
+				PyTuple_SET_ITEM(tmptuple, i, Py_None);
+				Py_DECREF(pPair);
+			}
+		}
+		PyTuple_SET_ITEM(pArgs,placeat,tmptuple);
+	}else{
+		Py_INCREF(Py_None);
+		PyTuple_SET_ITEM(pArgs,placeat,Py_None);
+	}
 }
 
 /*
