@@ -54,9 +54,9 @@ struct py_function_def {
 	char const	*function_name;
 };
 
+PyThreadState	*main_thread_state;
 typedef struct rlm_python_t {
 	void		*libpython;
-	PyThreadState	*main_thread_state;
 	char const	*python_path;
 
 	struct py_function_def
@@ -104,6 +104,8 @@ static CONF_PARSER module_config[] = {
 	{ "python_path", FR_CONF_OFFSET(PW_TYPE_STRING, rlm_python_t, python_path), NULL },
 	CONF_PARSER_TERMINATOR
 };
+
+static void read_request(VALUE_PAIR *vps, PyObject *pArgs, int placeat);
 
 static struct {
 	char const *name;
@@ -189,7 +191,7 @@ static void mod_error(void)
 	    ((pStr2 = PyObject_Str(pValue)) == NULL))
 		goto failed;
 
-	ERROR("rlm_python:EXCEPT:%s: %s", PyString_AsString(pStr1), PyString_AsString(pStr2));
+	ERROR(">>>>>rlm_python:EXCEPT:%s: %s", PyString_AsString(pStr1), PyString_AsString(pStr2));
 
 failed:
 	Py_XDECREF(pStr1);
@@ -204,8 +206,7 @@ static int mod_init(rlm_python_t *inst)
 	int i;
 	static char name[] = "radiusd";
 
-	if (radiusd_module) return 0;
-
+	
 	/*
 	 *	Explicitly load libpython, so symbols will be available to lib-dynload modules
 	 */
@@ -214,14 +215,21 @@ static int mod_init(rlm_python_t *inst)
 	if (!inst->libpython) {
 		WARN("Failed loading libpython symbols into global symbol table: %s", dlerror());
 	}
+	if (radiusd_module) {
+ 		PyEval_AcquireLock();
+ 		PyThreadState_Swap(main_thread_state);
+ 	}
+ 	else  {
+ 		Py_SetProgramName(name);
+ 	#ifdef HAVE_PTHREAD_H
+ 		Py_InitializeEx(0);				/* Don't override signal handlers */
+ 		PyEval_InitThreads(); 				/* This also grabs a lock */
+ 		main_thread_state = PyThreadState_Get();	/* We need this for setting up thread local stuff */
+ 	#endif
+ 
+ 	}
 
-	Py_SetProgramName(name);
-#ifdef HAVE_PTHREAD_H
-	Py_InitializeEx(0);				/* Don't override signal handlers */
-	PyEval_InitThreads(); 				/* This also grabs a lock */
-	inst->main_thread_state = PyThreadState_Get();	/* We need this for setting up thread local stuff */
-#endif
-	if (inst->python_path) {
+ 	if (inst->python_path) {
 		char *path;
 
 		memcpy(&path, &inst->python_path, sizeof(path));
@@ -302,7 +310,7 @@ static void mod_vptuple(TALLOC_CTX *ctx, REQUEST *request, VALUE_PAIR **vps, PyO
 		return;
 
 	if (!PyTuple_CheckExact(pValue)) {
-		ERROR("rlm_python:%s: non-tuple passed to %s", funcname, list_name);
+		ERROR(">>>>>rlm_python:%s: non-tuple passed to %s", funcname, list_name);
 		return;
 	}
 	/* Get the tuple tuplesize. */
@@ -318,14 +326,14 @@ static void mod_vptuple(TALLOC_CTX *ctx, REQUEST *request, VALUE_PAIR **vps, PyO
 		FR_TOKEN op = T_OP_EQ;
 
 		if (!PyTuple_CheckExact(pTupleElement)) {
-			ERROR("rlm_python:%s: tuple element %d of %s is not a tuple", funcname, i, list_name);
+			ERROR(">>>>>rlm_python:%s: tuple element %d of %s is not a tuple", funcname, i, list_name);
 			continue;
 		}
 		/* Check if it's a pair */
 
 		pairsize = PyTuple_GET_SIZE(pTupleElement);
 		if ((pairsize < 2) || (pairsize > 3)) {
-			ERROR("rlm_python:%s: tuple element %d of %s is a tuple of size %d. Must be 2 or 3.", funcname, i, list_name, pairsize);
+			ERROR(">>>>>rlm_python:%s: tuple element %d of %s is a tuple of size %d. Must be 2 or 3.", funcname, i, list_name, pairsize);
 			continue;
 		}
 
@@ -339,21 +347,21 @@ static void mod_vptuple(TALLOC_CTX *ctx, REQUEST *request, VALUE_PAIR **vps, PyO
 			if (PyInt_Check(pOp)) {
 				op	= PyInt_AsLong(pOp);
 				if (!fr_int2str(fr_tokens, op, NULL)) {
-					ERROR("rlm_python:%s: Invalid operator '%i', falling back to '='", funcname, op);
+					ERROR(">>>>>rlm_python:%s: Invalid operator '%i', falling back to '='", funcname, op);
 					op = T_OP_EQ;
 				}
 			} else if (PyString_CheckExact(pOp)) {
 				if (!(op = fr_str2int(fr_tokens, PyString_AsString(pOp), 0))) {
-					ERROR("rlm_python:%s: Invalid operator '%s', falling back to '='", funcname, PyString_AsString(pOp));
+					ERROR(">>>>>rlm_python:%s: Invalid operator '%s', falling back to '='", funcname, PyString_AsString(pOp));
 					op = T_OP_EQ;
 				}
 			} else {
-				ERROR("rlm_python:%s: Invalid operator type, using default '='", funcname);
+				ERROR(">>>>>rlm_python:%s: Invalid operator type, using default '='", funcname);
 			}
 		}
 
 		if ((!PyString_CheckExact(pStr1)) || (!PyString_CheckExact(pStr2))) {
-			ERROR("rlm_python:%s: tuple element %d of %s must be as (str, str)", funcname, i, list_name);
+			ERROR(">>>>>rlm_python:%s: tuple element %d of %s must be as (str, str)", funcname, i, list_name);
 			continue;
 		}
 		s1 = PyString_AsString(pStr1);
@@ -406,15 +414,18 @@ static int mod_populate_vptuple(PyObject *pPair, VALUE_PAIR *vp)
 
 	if (!pStr)
 		goto failed;
-
+	ERROR(">>>>>%s", vp->da->name);
 	PyTuple_SET_ITEM(pPair, 0, pStr);
+	ERROR(">>>>>%s", PyString_AsString(PyTuple_GetItem(pPair,0)));
 
 	vp_prints_value(buf, sizeof(buf), vp, '"');
-
+	
 	if ((pStr = PyString_FromString(buf)) == NULL)
 		goto failed;
+	ERROR(">>>>>%s",buf);
+	ERROR(">>>>>%s", PyString_AsString(pStr));
 	PyTuple_SET_ITEM(pPair, 1, pStr);
-
+	ERROR(">>>>>%s", PyString_AsString(PyTuple_GetItem(pPair,1)));
 	return 0;
 
 failed:
@@ -435,14 +446,10 @@ static void do_python_cleanup(void *arg)
 	PyEval_ReleaseLock();
 }
 #endif
-
-static rlm_rcode_t do_python(rlm_python_t *inst, REQUEST *request, PyObject *pFunc, char const *funcname, bool worker)
+static rlm_rcode_t do_python(REQUEST *request, PyObject *pFunc, char const *funcname, bool worker)
 {
-	vp_cursor_t	cursor;
-	VALUE_PAIR      *vp;
 	PyObject	*pRet = NULL;
 	PyObject	*pArgs = NULL;
-	int		tuplelen;
 	int		ret;
 
 	PyGILState_STATE gstate;
@@ -459,7 +466,7 @@ static rlm_rcode_t do_python(rlm_python_t *inst, REQUEST *request, PyObject *pFu
 		PyThreadState *my_thread_state;
 		my_thread_state = fr_thread_local_init(local_thread_state, do_python_cleanup);
 		if (!my_thread_state) {
-			my_thread_state = PyThreadState_New(inst->main_thread_state->interp);
+			my_thread_state = PyThreadState_New(main_thread_state->interp);
 			RDEBUG3("Initialised new thread state %p", my_thread_state);
 			if (!my_thread_state) {
 				REDEBUG("Failed initialising local PyThreadState on first run");
@@ -480,69 +487,61 @@ static rlm_rcode_t do_python(rlm_python_t *inst, REQUEST *request, PyObject *pFu
 		prev_thread_state = PyThreadState_Swap(my_thread_state);	/* Swap in our local thread state */
 	}
 #endif
-
+	ERROR(">>>>>ENTER PYYYYYP");
 	/* Default return value is "OK, continue" */
 	ret = RLM_MODULE_OK;
-
-	/*
-	 *	We will pass a tuple containing (name, value) tuples
-	 *	We can safely use the Python function to build up a
-	 *	tuple, since the tuple is not used elsewhere.
-	 *
-	 *	Determine the size of our tuple by walking through the packet.
-	 *	If request is NULL, pass None.
-	 */
-	tuplelen = 0;
-	if (request != NULL) {
-		for (vp = fr_cursor_init(&cursor, &request->packet->vps);
-		     vp;
-		     vp = fr_cursor_next(&cursor)) {
-			tuplelen++;
-		}
-	}
-
-	if (tuplelen == 0) {
-		Py_INCREF(Py_None);
-		pArgs = Py_None;
-	} else {
-		int i = 0;
-		if ((pArgs = PyTuple_New(tuplelen)) == NULL) {
-			ret = RLM_MODULE_FAIL;
-			goto finish;
-		}
-
-		for (vp = fr_cursor_init(&cursor, &request->packet->vps);
-		     vp;
-		     vp = fr_cursor_next(&cursor), i++) {
-			PyObject *pPair;
-
-			/* The inside tuple has two only: */
-			if ((pPair = PyTuple_New(2)) == NULL) {
-				ret = RLM_MODULE_FAIL;
-				goto finish;
-			}
-
-			if (mod_populate_vptuple(pPair, vp) == 0) {
-				/* Put the tuple inside the container */
-				PyTuple_SET_ITEM(pArgs, i, pPair);
-			} else {
-				Py_INCREF(Py_None);
-				PyTuple_SET_ITEM(pArgs, i, Py_None);
-				Py_DECREF(pPair);
-			}
-		}
-	}
-
-	/* Call Python function. */
-	pRet = PyObject_CallFunctionObjArgs(pFunc, pArgs, NULL);
-
-	if (!pRet) {
+	if ((pArgs = PyTuple_New(6)) == NULL) {
 		ret = RLM_MODULE_FAIL;
 		goto finish;
 	}
+	ERROR(">>>>>ENTER PYYYYYP");
+	
+	//Generate Python Tuple from request packets
+	if(request != NULL){
+		// request
+		ERROR(">>>>>ENTER if");
+		read_request(request->packet->vps,pArgs,0);
+		// reply
+		ERROR(">>>>>ENTER 2");
+		read_request(request->reply->vps,pArgs,1);
+		// control/config
+		ERROR(">>>>>ENTER 3");
+		read_request(request->config,pArgs,2);
+		// session-state
+		ERROR(">>>>>ENTER 4");
+		read_request(request->state,pArgs,3);
+		
+		if (request->proxy != NULL) {
+			ERROR(">>>>>ENTER 5");
+			// proxy-request
+			read_request(request->proxy->vps,pArgs,4);
+		}else{
+			Py_INCREF(Py_None);
+			PyTuple_SET_ITEM(pArgs, 4, Py_None);
+		}
+		if (request->proxy_reply != NULL) {
+			ERROR(">>>>>ENTER 6");
+			// proxy-reply
+			read_request(request->proxy_reply->vps,pArgs,5);
+		}else{
+			Py_INCREF(Py_None);
+			PyTuple_SET_ITEM(pArgs, 5, Py_None);
+		}
+	}
+	ERROR(">>>>>ENTER 7");
 
+	/* Call Python function. */
+	pRet = PyObject_CallFunctionObjArgs(pFunc, pArgs, NULL);
+	ERROR(">>>>>ENTER 8");
+	if (!pRet) {
+		ERROR(">>>>>ENTER 9");
+		ret = RLM_MODULE_FAIL;
+		goto finish;
+	}
+	ERROR(">>>>>ENTER 10");
 	if (!request)
 		goto finish;
+	ERROR(">>>>>ENTER 11");
 
 	/*
 	 *	The function returns either:
@@ -559,27 +558,56 @@ static rlm_rcode_t do_python(rlm_python_t *inst, REQUEST *request, PyObject *pFu
 	 */
 	if (PyTuple_CheckExact(pRet)) {
 		PyObject *pTupleInt;
+		ERROR(">>>>>RET %d",PyTuple_GET_SIZE(pRet));
+		if (PyTuple_GET_SIZE(pRet) == 3){
+			pTupleInt = PyTuple_GET_ITEM(pRet, 0);
+			if (!PyInt_CheckExact(pTupleInt)) {
+				ERROR(">>>>>rlm_python:%s: first tuple element not an integer", funcname);
+				ret = RLM_MODULE_FAIL;
+				goto finish;
+			}
+			/* Now have the return value */
+			ret = PyInt_AsLong(pTupleInt);
+			/* Reply item tuple */
+			mod_vptuple(request->reply, request, &request->reply->vps,
+				    PyTuple_GET_ITEM(pRet, 1), funcname, "reply");
+			/* Config item tuple */
+			mod_vptuple(request, request, &request->config,
+				    PyTuple_GET_ITEM(pRet, 2), funcname, "config");
 
-		if (PyTuple_GET_SIZE(pRet) != 3) {
-			ERROR("rlm_python:%s: tuple must be (return, replyTuple, configTuple)", funcname);
+		} else if(PyTuple_GET_SIZE(pRet) == 7){
+			pTupleInt = PyTuple_GET_ITEM(pRet, 0);
+			if (!PyInt_CheckExact(pTupleInt)) {
+				ERROR(">>>>>rlm_python:%s: first tuple element not an integer", funcname);
+				ret = RLM_MODULE_FAIL;
+				goto finish;
+			}
+			ret = PyInt_AsLong(pTupleInt);
+
+			mod_vptuple(request->packet, request, &request->packet->vps,
+					PyTuple_GET_ITEM(pRet, 1), funcname, "request");
+			mod_vptuple(request->reply, request, &request->reply->vps,
+					PyTuple_GET_ITEM(pRet, 2), funcname, "reply");
+			mod_vptuple(request, request, &request->config,
+					PyTuple_GET_ITEM(pRet, 3), funcname, "config");
+			mod_vptuple(request, request, &request->state,
+					PyTuple_GET_ITEM(pRet, 4), funcname, "state");
+			if(request->proxy != NULL){
+				mod_vptuple(request->proxy, request, &request->proxy->vps, 
+					PyTuple_GET_ITEM(pRet, 5), funcname, "proxy");
+			}
+			if(request->proxy_reply != NULL){
+				mod_vptuple(request->proxy_reply, request, &request->proxy_reply->vps, 
+					PyTuple_GET_ITEM(pRet, 6), funcname, "proxy_reply");
+			}
+
+		} else {
+			ERROR(">>>>>rlm_python:%s: tuple must be (return, replyTuple, configTuple)", funcname);
 			ret = RLM_MODULE_FAIL;
 			goto finish;
 		}
 
-		pTupleInt = PyTuple_GET_ITEM(pRet, 0);
-		if (!PyInt_CheckExact(pTupleInt)) {
-			ERROR("rlm_python:%s: first tuple element not an integer", funcname);
-			ret = RLM_MODULE_FAIL;
-			goto finish;
-		}
-		/* Now have the return value */
-		ret = PyInt_AsLong(pTupleInt);
-		/* Reply item tuple */
-		mod_vptuple(request->reply, request, &request->reply->vps,
-			    PyTuple_GET_ITEM(pRet, 1), funcname, "reply");
-		/* Config item tuple */
-		mod_vptuple(request, request, &request->config,
-			    PyTuple_GET_ITEM(pRet, 2), funcname, "config");
+		
 
 	} else if (PyInt_CheckExact(pRet)) {
 		/* Just an integer */
@@ -590,7 +618,7 @@ static rlm_rcode_t do_python(rlm_python_t *inst, REQUEST *request, PyObject *pFu
 		ret = RLM_MODULE_OK;
 	} else {
 		/* Not tuple or None */
-		ERROR("rlm_python:%s: function did not return a tuple or None", funcname);
+		ERROR(">>>>>rlm_python:%s: function did not return a tuple or None", funcname);
 		ret = RLM_MODULE_FAIL;
 		goto finish;
 	}
@@ -622,17 +650,17 @@ static int mod_load_function(struct py_function_def *def)
 
 	if (def->module_name != NULL && def->function_name != NULL) {
 		if ((def->module = PyImport_ImportModule(def->module_name)) == NULL) {
-			ERROR("rlm_python:%s: module '%s' is not found", funcname, def->module_name);
+			ERROR(">>>>>rlm_python:%s: module '%s' is not found", funcname, def->module_name);
 			goto failed;
 		}
 
 		if ((def->function = PyObject_GetAttrString(def->module, def->function_name)) == NULL) {
-			ERROR("rlm_python:%s: function '%s.%s' is not found", funcname, def->module_name, def->function_name);
+			ERROR(">>>>>rlm_python:%s: function '%s.%s' is not found", funcname, def->module_name, def->function_name);
 			goto failed;
 		}
 
 		if (!PyCallable_Check(def->function)) {
-			ERROR("rlm_python:%s: function '%s.%s' is not callable", funcname, def->module_name, def->function_name);
+			ERROR(">>>>>rlm_python:%s: function '%s.%s' is not callable", funcname, def->module_name, def->function_name);
 			goto failed;
 		}
 	}
@@ -641,7 +669,7 @@ static int mod_load_function(struct py_function_def *def)
 
 failed:
 	mod_error();
-	ERROR("rlm_python:%s: failed to import python function '%s.%s'", funcname, def->module_name, def->function_name);
+	ERROR(">>>>>rlm_python:%s: failed to import python function '%s.%s'", funcname, def->module_name, def->function_name);
 	Py_XDECREF(def->function);
 	def->function = NULL;
 	Py_XDECREF(def->module);
@@ -650,6 +678,55 @@ failed:
 	return -1;
 }
 
+static void read_request(VALUE_PAIR *vps, PyObject *pArgs, int placeat)
+{
+	int len = 0;
+	PyObject *tmptuple = NULL;
+	VALUE_PAIR *vp;
+	vp_cursor_t	cursor;
+	// ERROR(">>>>>read_request:1");
+
+	for (vp = fr_cursor_init(&cursor, &vps);
+	     vp;
+	     vp = fr_cursor_next(&cursor)) {
+		len++;
+	}
+	// ERROR(">>>>>read_request:2");
+	if (len != 0) {
+		int i = 0;
+		// ERROR(">>>>>read_request>>%d",len);
+		if ((tmptuple = PyTuple_New(len)) == NULL) {
+			ERROR(">>>>>rlm_python:read_from_request new Tuple error");
+		}
+		for (vp = fr_cursor_init(&cursor, &vps);
+		     vp;
+		     vp = fr_cursor_next(&cursor), i++) {
+			PyObject *pPair;
+
+			/* The inside tuple has two only: */
+			if ((pPair = PyTuple_New(2)) == NULL) {
+				ERROR(">>>>>rlm_python:read_from_request new Tuple error");
+			}
+
+			if (mod_populate_vptuple(pPair, vp) == 0) {
+				// ERROR(">>>>>read success)))))%d",i);
+				PyTuple_SET_ITEM(tmptuple, i, pPair);
+			} else {
+				Py_INCREF(Py_None);
+				PyTuple_SET_ITEM(tmptuple, i, Py_None);
+				Py_DECREF(pPair);
+			}
+		}
+		PyTuple_SET_ITEM(pArgs, placeat, tmptuple);
+		// ERROR(">>>>>%s", PyString_AsString(PyTuple_GetItem(PyTuple_GetItem(tmptuple,0),0)));
+		// ERROR(">>>>>%s", PyString_AsString(PyTuple_GetItem(PyTuple_GetItem(pArgs,0),0)));
+	} else {
+		Py_INCREF(Py_None);
+		PyTuple_SET_ITEM(pArgs, placeat, Py_None);
+	}
+
+	// Py_XDECREF(tmptuple);
+}
 
 static void mod_objclear(PyObject **ob)
 {
@@ -724,7 +801,7 @@ static int mod_instantiate(UNUSED CONF_SECTION *conf, void *instance)
 	 *	Call the instantiate function.  No request.  Use the
 	 *	return value.
 	 */
-	return do_python(inst, NULL, inst->instantiate.function, "instantiate", false);
+	return do_python(NULL, inst->instantiate.function, "instantiate", false);
 failed:
 	Pyx_BLOCK_THREADS
 	mod_error();
@@ -741,7 +818,7 @@ static int mod_detach(void *instance)
 	/*
 	 *	Master should still have no thread state
 	 */
-	ret = do_python(inst, NULL, inst->detach.function, "detach", false);
+	ret = do_python(NULL, inst->detach.function, "detach", false);
 
 	mod_instance_clear(inst);
 	dlclose(inst->libpython);
@@ -750,7 +827,7 @@ static int mod_detach(void *instance)
 }
 
 #define A(x) static rlm_rcode_t CC_HINT(nonnull) mod_##x(void *instance, REQUEST *request) { \
-		return do_python((rlm_python_t *) instance, request, ((rlm_python_t *)instance)->x.function, #x, true);\
+		return do_python(request, ((rlm_python_t *)instance)->x.function, #x, true);\
 	}
 
 A(authenticate)
