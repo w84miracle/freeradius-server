@@ -558,7 +558,7 @@ static rlm_rcode_t do_python(REQUEST *request, PyObject *pFunc, char const *func
 	 */
 	if (PyTuple_CheckExact(pRet)) {
 		PyObject *pTupleInt;
-		ERROR(">>>>>RET %d",PyTuple_GET_SIZE(pRet));
+		ERROR(">>>>>RET %zu",PyTuple_GET_SIZE(pRet));
 		if (PyTuple_GET_SIZE(pRet) == 3){
 			pTupleInt = PyTuple_GET_ITEM(pRet, 0);
 			if (!PyInt_CheckExact(pTupleInt)) {
